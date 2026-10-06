@@ -1,0 +1,6 @@
+{
+  "name": "Shopee Figurinhas",
+  "description": "Página oficial da campanha Shopee Figurinhas: colecione figurinhas, cumpra tarefas e resgate cupons de desconto e moedas Shopee.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
