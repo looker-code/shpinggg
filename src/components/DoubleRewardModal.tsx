@@ -16,17 +16,25 @@ export const DoubleRewardModal: React.FC<DoubleRewardModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
-  const handleShareClick = () => {
+  const handleShareClick = async () => {
     const text = 'ADQUIRA AGORA O CONJUNTO DE FIGURINHAS POR TEMPO LIMITADO!';
     const url = window.location.href;
+    
+    try {
+      await navigator.clipboard.writeText(`${text} ${url}`);
+    } catch (e) {
+      console.error(e);
+    }
+    
     const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text + ' ' + url)}`;
     window.open(whatsappUrl, '_blank');
     onShare();
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl border-4 border-[#ffd700] relative animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="min-h-full flex items-center justify-center p-4">
+        <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl border-4 border-[#ffd700] relative animate-in zoom-in-95 duration-200">
         
         {/* Header */}
         <div className="bg-gradient-to-r from-amber-400 to-orange-500 p-5 text-white flex flex-col items-center relative">
@@ -66,6 +74,7 @@ export const DoubleRewardModal: React.FC<DoubleRewardModalProps> = ({
             Não quero receber em dobro, continuar
           </button>
         </div>
+      </div>
       </div>
     </div>
   );

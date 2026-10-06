@@ -100,11 +100,12 @@ export const ClaimFormModal: React.FC<ClaimFormModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 overflow-y-auto bg-black/75 backdrop-blur-xs animate-in fade-in duration-150"
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border-4 border-[#ee4d2d] relative">
-        {/* Header */}
+      <div className="min-h-full flex items-center justify-center p-4">
+        <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border-4 border-[#ee4d2d] relative">
+          {/* Header */}
         <div className="bg-gradient-to-r from-[#d71920] to-[#ee4d2d] p-5 text-white flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
@@ -275,6 +276,7 @@ export const ClaimFormModal: React.FC<ClaimFormModalProps> = ({
             </form>
           )}
         </div>
+      </div>
       </div>
     </div>
   );

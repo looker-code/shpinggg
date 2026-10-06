@@ -184,6 +184,11 @@ export default function App() {
         </div>
       )}
 
+      {/* Top Cost Warning Banner */}
+      <div className="w-full bg-[#ffeb3b] text-yellow-900 text-[11px] sm:text-xs md:text-sm font-black text-center py-2 px-4 shadow-sm z-40 relative tracking-wide uppercase border-b border-yellow-500">
+        ⚠️ Aviso: A liberação do prêmio possui uma taxa de validação de apenas R$1,99.
+      </div>
+
       {/* Main Campaign Canvas Container */}
       <main className="flex-1 w-full flex justify-center px-0 sm:px-2 md:px-4 py-0 sm:py-6">
         {/* Central Campaign Strip (exact width & layout as original) */}
