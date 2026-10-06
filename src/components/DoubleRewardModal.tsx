@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Share2, Gift } from 'lucide-react';
+import { X, Share2, Gift, Copy } from 'lucide-react';
 
 interface DoubleRewardModalProps {
   isOpen: boolean;
@@ -26,8 +26,6 @@ export const DoubleRewardModal: React.FC<DoubleRewardModalProps> = ({
       console.error(e);
     }
     
-    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text + ' ' + url)}`;
-    window.open(whatsappUrl, '_blank');
     onShare();
   };
 
@@ -61,10 +59,10 @@ export const DoubleRewardModal: React.FC<DoubleRewardModalProps> = ({
 
           <button
             onClick={handleShareClick}
-            className="w-full bg-[#25D366] hover:bg-[#1ebe57] active:scale-95 text-white font-black py-4 rounded-2xl shadow-xl transition-all flex items-center justify-center gap-2 group"
+            className="w-full bg-[#0052d4] hover:bg-[#0041a8] active:scale-95 text-white font-black py-4 rounded-2xl shadow-xl transition-all flex items-center justify-center gap-2 group"
           >
-            <Share2 className="w-5 h-5 group-hover:scale-110 transition-transform" />
-            <span>COMPARTILHAR AGORA</span>
+            <Copy className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            <span>COPIAR O LINK</span>
           </button>
 
           <button
