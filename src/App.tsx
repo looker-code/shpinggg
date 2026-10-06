@@ -11,6 +11,7 @@ import { AdminPanelModal, Lead } from './components/AdminPanelModal';
 import { TaskModal } from './components/TaskModal';
 import { ShareModal } from './components/ShareModal';
 import { DoubleRewardModal } from './components/DoubleRewardModal';
+import { AdminLogin } from './components/AdminLogin';
 
 export default function App() {
   // State for chances and modals
@@ -22,6 +23,9 @@ export default function App() {
   const [isShareModalOpen, setIsShareModalOpen] = useState<boolean>(false);
   const [isDoubleRewardModalOpen, setIsDoubleRewardModalOpen] = useState<boolean>(false);
   const [notification, setNotification] = useState<string | null>(null);
+  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(() => {
+    return sessionStorage.getItem('admin_logged_in') === 'true';
+  });
 
   // Leads list with persistence in localStorage
   const [leads, setLeads] = useState<Lead[]>(() => {
@@ -160,11 +164,26 @@ export default function App() {
   const isAdminRoute = window.location.pathname === '/admin';
 
   if (isAdminRoute) {
+    if (!isAdminLoggedIn) {
+      return (
+        <AdminLogin 
+          onLoginSuccess={() => {
+            setIsAdminLoggedIn(true);
+            sessionStorage.setItem('admin_logged_in', 'true');
+          }} 
+        />
+      );
+    }
+
     return (
       <div className="min-h-screen bg-[#f5f5f5] font-['Plus_Jakarta_Sans',sans-serif]">
         <AdminPanelModal
           isOpen={true}
-          onClose={() => { window.location.href = '/'; }}
+          onClose={() => { 
+            sessionStorage.removeItem('admin_logged_in');
+            setIsAdminLoggedIn(false);
+            window.location.href = '/'; 
+          }}
           leads={leads}
           onUpdateStatus={handleUpdateLeadStatus}
           onDeleteLead={handleDeleteLead}
