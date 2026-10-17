@@ -1,5 +1,15 @@
 import React, { useState } from 'react';
-import { Lock, User, ArrowRight, ShieldCheck, Eye, EyeOff, ReceiptText } from 'lucide-react';
+import { 
+  ShieldCheck, 
+  Lock, 
+  User, 
+  ArrowRight, 
+  Eye, 
+  EyeOff, 
+  FileSpreadsheet, 
+  KeyRound, 
+  Layers
+} from 'lucide-react';
 
 interface LoginScreenProps {
   onLogin: () => void;
@@ -13,7 +23,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Credencial padrão: admin / 123456
     if (
       (username.trim().toLowerCase() === 'admin' && password === '123456') ||
       (username.trim() !== '' && password.trim() !== '')
@@ -26,94 +35,130 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-100">
-        {/* Top Header */}
-        <div className="bg-gradient-to-r from-emerald-600 to-teal-700 p-8 text-white text-center relative overflow-hidden">
-          <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-white/10 rounded-full blur-xl pointer-events-none" />
-          <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mx-auto mb-4 border border-white/30 shadow-inner">
-            <ReceiptText className="w-8 h-8 text-white" />
+    <div className="min-h-screen bg-[#070a11] text-slate-100 flex items-center justify-center p-4 relative overflow-hidden font-['Inter',sans-serif]">
+      {/* Background ambient lighting in Emerald & Slate */}
+      <div className="absolute top-1/4 -left-20 w-96 h-96 bg-emerald-600/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(#10b98115_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none opacity-40" />
+
+      <div className="w-full max-w-md relative z-10">
+        {/* Top Logo Badge */}
+        <div className="flex flex-col items-center mb-6">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-700 p-0.5 shadow-[0_0_30px_rgba(16,185,129,0.3)] mb-3 flex items-center justify-center">
+            <div className="w-full h-full bg-[#0b101b] rounded-[14px] flex items-center justify-center">
+              <FileSpreadsheet className="w-7 h-7 text-emerald-400" />
+            </div>
           </div>
-          <h1 className="font-extrabold text-2xl tracking-tight">PromissóriaPay</h1>
-          <p className="text-emerald-100 text-sm mt-1 font-medium">
-            Gestão de Promissórias e Contas a Pagar
+          <span className="text-xs font-mono font-bold tracking-widest text-emerald-400 uppercase bg-emerald-950/60 border border-emerald-500/30 px-3 py-0.5 rounded-full mb-1">
+            Módulo de Tesouraria & Crédito
+          </span>
+          <h1 className="text-2xl font-black tracking-tight text-white font-['Space_Grotesk',sans-serif]">
+            Promissória<span className="text-emerald-400">Pay</span> <span className="text-xs font-normal text-slate-500 uppercase tracking-widest border border-slate-800 rounded px-1.5 py-0.5 ml-1">v2.4</span>
+          </h1>
+          <p className="text-slate-400 text-xs mt-1 text-center font-medium">
+            Gestão de Títulos Executivos, Amortizações e Quitações
           </p>
         </div>
 
-        {/* Login Form */}
-        <form onSubmit={handleSubmit} className="p-8 space-y-5 bg-white">
-          <div className="text-center">
-            <h2 className="text-lg font-bold text-slate-800">Acesso ao Sistema</h2>
-            <p className="text-xs text-slate-500">Entre com seu usuário e senha para gerenciar seus pagamentos</p>
-          </div>
-
-          {error && (
-            <div className="bg-rose-50 text-rose-600 text-xs font-semibold p-3 rounded-xl border border-rose-200 text-center animate-shake">
-              Usuário ou senha inválidos. Tente <span className="font-bold underline">admin</span> e senha <span className="font-bold underline">123456</span>.
+        {/* Card Box */}
+        <div className="bg-[#0e1424]/90 backdrop-blur-xl rounded-3xl border border-slate-800/90 shadow-[0_20px_50px_rgba(0,0,0,0.6)] overflow-hidden">
+          <div className="p-6 sm:p-8 space-y-5">
+            <div className="border-b border-slate-800/80 pb-4">
+              <h2 className="text-base font-bold text-slate-100 font-['Space_Grotesk',sans-serif] flex items-center gap-2">
+                <KeyRound className="w-4 h-4 text-emerald-400" />
+                <span>Autenticação de Operador</span>
+              </h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Acesse o livro razão de notas promissórias e contas a pagar
+              </p>
             </div>
-          )}
 
-          <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-              Usuário
-            </label>
-            <div className="relative">
-              <input
-                type="text"
-                required
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Ex: admin"
-                className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all font-medium"
-              />
-              <User className="w-5 h-5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            </div>
-          </div>
+            {error && (
+              <div className="p-3.5 bg-rose-950/50 border border-rose-500/40 rounded-xl text-rose-300 text-xs font-semibold text-center animate-shake">
+                Credenciais não reconhecidas. Utilize o operador padrão <span className="text-white underline">admin</span> e chave <span className="text-white underline">123456</span>.
+              </div>
+            )}
 
-          <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-              Senha
-            </label>
-            <div className="relative">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full pl-11 pr-12 py-3 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all font-medium"
-              />
-              <Lock className="w-5 h-5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Usuário */}
+              <div>
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                  Operador / Chave de Acesso
+                </label>
+                <div className="relative">
+                  <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    required
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="Ex: admin"
+                    className="w-full pl-10 pr-4 py-3 bg-[#131b2e] border border-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-sm font-medium text-white placeholder-slate-600 outline-none transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Senha */}
+              <div>
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                  Senha Criptografada
+                </label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full pl-10 pr-11 py-3 bg-[#131b2e] border border-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-sm font-medium text-white placeholder-slate-600 outline-none transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 p-1 cursor-pointer transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Credenciais de demonstração */}
+              <div className="p-3 bg-[#0a0f1c] rounded-xl border border-slate-800/80 flex items-center justify-between text-xs">
+                <span className="text-slate-400 font-medium">Acesso pré-configurado:</span>
+                <span className="font-mono text-emerald-400 font-bold bg-emerald-950/80 border border-emerald-500/20 px-2 py-0.5 rounded">
+                  admin : 123456
+                </span>
+              </div>
+
+              {/* Botão de Entrar */}
               <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
+                type="submit"
+                className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 active:scale-[0.99] text-slate-950 font-black py-3.5 rounded-xl text-sm transition-all shadow-[0_0_25px_rgba(16,185,129,0.25)] flex items-center justify-center gap-2 cursor-pointer mt-2"
               >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                <span>ACESSAR CARTEIRA DE TÍTULOS</span>
+                <ArrowRight className="w-4 h-4 text-slate-950" />
               </button>
-            </div>
+            </form>
           </div>
 
-          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-600 flex items-center justify-between">
-            <span className="font-medium">Acesso Padrão:</span>
-            <span className="font-mono bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-700 font-semibold">
-              admin / 123456
+          {/* Footer of card */}
+          <div className="px-6 py-3.5 bg-[#0a0e19] border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500">
+            <span className="flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              Decreto nº 2.044 / LUG
+            </span>
+            <span className="flex items-center gap-1">
+              <Layers className="w-3.5 h-3.5 text-slate-500" />
+              Livro Razão Criptografado
             </span>
           </div>
+        </div>
 
-          <button
-            type="submit"
-            className="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-bold py-3.5 rounded-xl text-sm transition-all shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2 cursor-pointer"
-          >
-            <span>ENTRAR NO SISTEMA</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
-
-          <div className="flex items-center justify-center gap-1.5 text-slate-400 text-xs pt-2">
-            <ShieldCheck className="w-4 h-4 text-emerald-600" />
-            <span>Sistema Seguro de Controle de Promissórias</span>
-          </div>
-        </form>
+        {/* Bottom footer text */}
+        <p className="text-center text-[11px] text-slate-500 mt-6">
+          PromissóriaPay Enterprise • Gestão Fiduciária e Registro de Pagamentos
+        </p>
       </div>
     </div>
   );

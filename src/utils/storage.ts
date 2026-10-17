@@ -1,108 +1,121 @@
 import { PromissoryNote, DashboardSummary } from '../types';
 
-const STORAGE_KEY = 'promissory_notes_db';
+const STORAGE_KEY = 'promissory_notes_corporate_db_v2';
 
 export const SEED_NOTES: PromissoryNote[] = [
   {
-    id: 'prom-1',
-    code: 'PROM-001',
-    title: 'Fornecedor de Mercadorias - Distribuidora União',
-    creditor: 'Distribuidora União Ltda',
-    debtor: 'Minha Empresa / Comércio',
-    totalAmount: 4500.0,
-    issueDate: '2026-09-10',
-    dueDate: '2026-10-30',
-    place: 'São Paulo - SP',
-    notes: 'Nota promissória referente à remessa de produtos do mês 09. Parcelamento acordado.',
+    id: 'np-2026-001',
+    code: 'NP-2026/089',
+    title: 'Cédula de Crédito Mercantil - Fornecimento de Polímeros & Resinas',
+    creditor: 'Petroquímica & Resinas União S.A.',
+    creditorDoc: '14.892.451/0001-88',
+    debtor: 'Soluções Empresariais & Manufatura Ltda.',
+    debtorDoc: '08.723.119/0001-42',
+    totalAmount: 18500.0,
+    issueDate: '2026-09-01',
+    dueDate: '2026-11-15',
+    place: 'Comarca de São Paulo - SP',
+    notes: 'Título executivo emitido sob a égide do Decreto nº 2.044/1908 e Lei Uniforme de Genebra (Dec. nº 57.663/66). Vinculado à NF-e nº 008.912.',
     status: 'parcial',
-    createdAt: '2026-09-10T10:00:00.000Z',
+    createdAt: '2026-09-01T08:00:00.000Z',
     payments: [
       {
-        id: 'pay-1-1',
-        amount: 1500.0,
-        date: '2026-09-25',
-        method: 'pix',
-        note: '1ª Amortização via Pix',
-        registeredAt: '2026-09-25T14:30:00.000Z',
-      },
-      {
-        id: 'pay-1-2',
-        amount: 1000.0,
-        date: '2026-10-10',
+        id: 'pay-001-1',
+        amount: 6500.0,
+        date: '2026-09-20',
         method: 'transferencia',
-        note: '2ª Amortização parcial',
-        registeredAt: '2026-10-10T16:00:00.000Z',
+        note: '1ª Amortização ordinária de tesouraria',
+        authCode: 'TED-89410294-BCB',
+        registeredAt: '2026-09-20T14:30:00.000Z',
+      },
+      {
+        id: 'pay-001-2',
+        amount: 4000.0,
+        date: '2026-10-05',
+        method: 'pix',
+        note: '2ª Amortização extraordinária via arranjo instantâneo',
+        authCode: 'E18236128202610051600a9f81',
+        registeredAt: '2026-10-05T16:00:00.000Z',
       },
     ],
   },
   {
-    id: 'prom-2',
-    code: 'PROM-002',
-    title: 'Reforma e Pintura do Ponto Comercial',
-    creditor: 'Manoel Silva Empreiteira',
-    debtor: 'Minha Empresa / Comércio',
-    totalAmount: 2800.0,
-    issueDate: '2026-08-15',
-    dueDate: '2026-10-15',
-    place: 'São Paulo - SP',
-    notes: 'Promissória do serviço de alvenaria e pintura.',
+    id: 'np-2026-002',
+    code: 'NP-2026/074',
+    title: 'Contrato de Modernização Estrutural e Engenharia Térmica',
+    creditor: 'Aliança Engenharia & Climatização Industrial Ltda.',
+    creditorDoc: '22.304.918/0001-15',
+    debtor: 'Soluções Empresariais & Manufatura Ltda.',
+    debtorDoc: '08.723.119/0001-42',
+    totalAmount: 9400.0,
+    issueDate: '2026-08-10',
+    dueDate: '2026-10-10',
+    place: 'Comarca de Campinas - SP',
+    notes: 'Termo de quitação plena, geral e irrevogável emitido pelo credor após cumprimento integral da obrigação.',
     status: 'quitado',
-    createdAt: '2026-08-15T09:00:00.000Z',
+    createdAt: '2026-08-10T09:30:00.000Z',
     payments: [
       {
-        id: 'pay-2-1',
-        amount: 1400.0,
-        date: '2026-09-15',
-        method: 'pix',
-        note: 'Entrada 50%',
-        registeredAt: '2026-09-15T11:00:00.000Z',
+        id: 'pay-002-1',
+        amount: 4700.0,
+        date: '2026-09-10',
+        method: 'transferencia',
+        note: 'Entrada formal de mobilização técnica',
+        authCode: 'TED-77192831-BCB',
+        registeredAt: '2026-09-10T11:00:00.000Z',
       },
       {
-        id: 'pay-2-2',
-        amount: 1400.0,
-        date: '2026-10-14',
+        id: 'pay-002-2',
+        amount: 4700.0,
+        date: '2026-10-09',
         method: 'pix',
-        note: 'Quitação final na entrega do serviço',
-        registeredAt: '2026-10-14T17:15:00.000Z',
+        note: 'Liquidação e resgate definitivo do título',
+        authCode: 'E18236128202610091715b7e23',
+        registeredAt: '2026-10-09T17:15:00.000Z',
       },
     ],
   },
   {
-    id: 'prom-3',
-    code: 'PROM-003',
-    title: 'Aquisição de Máquinas e Equipamentos',
-    creditor: 'Indústria MaqSul S.A.',
-    debtor: 'Minha Empresa / Comércio',
-    totalAmount: 6200.0,
+    id: 'np-2026-003',
+    code: 'NP-2026/092',
+    title: 'Financiamento Operacional de Centro de Usinagem CNC',
+    creditor: 'TecnoMáquinas Brasil Importação & Distribuição S.A.',
+    creditorDoc: '03.491.820/0001-99',
+    debtor: 'Soluções Empresariais & Manufatura Ltda.',
+    debtorDoc: '08.723.119/0001-42',
+    totalAmount: 32000.0,
     issueDate: '2026-10-01',
-    dueDate: '2026-11-20',
-    place: 'São Paulo - SP',
-    notes: 'Garantia vinculada à nota promissória nº 003.',
+    dueDate: '2026-12-20',
+    place: 'Comarca de São Paulo - SP',
+    notes: 'Garantia vinculada com cláusula de reserva de domínio sobre equipamento modelo CNC-Pro 5X.',
     status: 'pendente',
     createdAt: '2026-10-01T08:30:00.000Z',
     payments: [],
   },
   {
-    id: 'prom-4',
-    code: 'PROM-004',
-    title: 'Gráfica e Embalagens Personalizadas',
-    creditor: 'ArteBox Embalagens',
-    debtor: 'Minha Empresa / Comércio',
-    totalAmount: 1250.0,
-    issueDate: '2026-09-01',
+    id: 'np-2026-004',
+    code: 'NP-2026/065',
+    title: 'Fornecimento Contratual de Matéria-Prima Metálica e Perfis',
+    creditor: 'Siderúrgica & Perfis São Bento Ltda.',
+    creditorDoc: '61.492.381/0001-04',
+    debtor: 'Soluções Empresariais & Manufatura Ltda.',
+    debtorDoc: '08.723.119/0001-42',
+    totalAmount: 7800.0,
+    issueDate: '2026-08-25',
     dueDate: '2026-10-05',
-    place: 'São Paulo - SP',
-    notes: 'Lote de 5.000 sacolas e caixas.',
+    place: 'Comarca de Santo André - SP',
+    notes: 'Título vencido em aberto com notificação extrajudicial em curso. Sujeito à cláusula penal de 2% ao mês.',
     status: 'parcial',
-    createdAt: '2026-09-01T13:20:00.000Z',
+    createdAt: '2026-08-25T13:20:00.000Z',
     payments: [
       {
-        id: 'pay-4-1',
-        amount: 500.0,
-        date: '2026-09-10',
+        id: 'pay-004-1',
+        amount: 2500.0,
+        date: '2026-09-15',
         method: 'cartao',
-        note: 'Sinal de confirmação',
-        registeredAt: '2026-09-10T15:00:00.000Z',
+        note: 'Amortização de boa-fé em balcão',
+        authCode: 'AUT-6619028',
+        registeredAt: '2026-09-15T15:00:00.000Z',
       },
     ],
   },
@@ -118,9 +131,8 @@ export const loadPromissoryNotes = (): PromissoryNote[] => {
       }
     }
   } catch (err) {
-    console.error('Erro ao ler localStorage', err);
+    console.error('Erro ao ler base corporativa', err);
   }
-  // Se não existir, salva o seed e retorna
   savePromissoryNotes(SEED_NOTES);
   return SEED_NOTES;
 };
@@ -129,7 +141,7 @@ export const savePromissoryNotes = (notes: PromissoryNote[]): void => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
   } catch (err) {
-    console.error('Erro ao salvar no localStorage', err);
+    console.error('Erro ao persistir base corporativa', err);
   }
 };
 
@@ -137,6 +149,7 @@ export const formatCurrency = (value: number): string => {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL',
+    minimumFractionDigits: 2,
   }).format(value || 0);
 };
 
@@ -170,9 +183,8 @@ export const calculateNoteFinancials = (note: PromissoryNote): NoteFinancials =>
     ? Math.min(100, Math.round((paidAmount / note.totalAmount) * 100)) 
     : 100;
 
-  // Checar se está vencida (se não quitada e dueDate < hoje)
   const todayStr = new Date().toISOString().split('T')[0];
-  const isOverdue = remainingAmount > 0 && note.dueDate < todayStr;
+  const isOverdue = remainingAmount > 0.001 && note.dueDate < todayStr;
 
   let computedStatus: 'pendente' | 'parcial' | 'quitado' | 'vencido';
   if (remainingAmount <= 0.001) {
@@ -214,6 +226,7 @@ export const calculateDashboardSummary = (notes: PromissoryNote[]): DashboardSum
   });
 
   const totalPending = Math.max(0, totalOriginal - totalPaid);
+  const liquidityRate = totalOriginal > 0 ? Math.round((totalPaid / totalOriginal) * 100) : 100;
 
   return {
     totalOriginal,
@@ -224,5 +237,6 @@ export const calculateDashboardSummary = (notes: PromissoryNote[]): DashboardSum
     partialCount,
     paidCount,
     overdueCount,
+    liquidityRate,
   };
 };

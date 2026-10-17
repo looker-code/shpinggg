@@ -16,28 +16,27 @@ import { AddPaymentModal } from './components/AddPaymentModal';
 import { PromissoryDetailsModal } from './components/PromissoryDetailsModal';
 
 export default function App() {
-  // Auth state
+  // Estado de autenticação persistido
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return localStorage.getItem('promissory_auth') === 'true';
+    return localStorage.getItem('promissory_auth_v2') === 'true';
   });
 
-  // Navigation tab
+  // Aba ativa
   const [activeTab, setActiveTab] = useState<'inicio' | 'a-pagar'>('inicio');
 
-  // Notes state with persistence
+  // Base corporativa de notas promissórias
   const [notes, setNotes] = useState<PromissoryNote[]>(() => {
     return loadPromissoryNotes();
   });
 
-  // Modals state
+  // Controle de modais
   const [isNewAccountModalOpen, setIsNewAccountModalOpen] = useState(false);
   const [selectedNoteForPayment, setSelectedNoteForPayment] = useState<PromissoryNote | null>(null);
   const [selectedNoteForDetails, setSelectedNoteForDetails] = useState<PromissoryNote | null>(null);
 
-  // Toast notification
+  // Notificações flutuantes (Toast)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'warn' } | null>(null);
 
-  // Save changes to localStorage
   useEffect(() => {
     savePromissoryNotes(notes);
   }, [notes]);
@@ -46,52 +45,53 @@ export default function App() {
     setToast({ message, type });
     setTimeout(() => {
       setToast(null);
-    }, 3500);
+    }, 4000);
   };
 
   const handleLogin = () => {
-    localStorage.setItem('promissory_auth', 'true');
+    localStorage.setItem('promissory_auth_v2', 'true');
     setIsAuthenticated(true);
-    showToast('Login realizado com sucesso! Bem-vindo.');
+    showToast('Autenticação corporativa confirmada. Livro razão aberto.');
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('promissory_auth');
+    localStorage.removeItem('promissory_auth_v2');
     setIsAuthenticated(false);
-    showToast('Sessão finalizada com sucesso.', 'info');
+    showToast('Sessão fiduciária finalizada com segurança.', 'info');
   };
 
-  // Generate next promissory code suggestion (e.g. PROM-005)
+  // Gerador de código sequencial fiduciário (ex: NP-2026/093)
   const getNextCodeSuggestion = () => {
+    const currentYear = new Date().getFullYear();
     const existingNumbers = notes.map((n) => {
-      const match = n.code.match(/PROM-(\d+)/i);
+      const match = n.code.match(/NP-\d+\/(\d+)/i) || n.code.match(/PROM-(\d+)/i);
       return match ? parseInt(match[1], 10) : 0;
     });
     const maxNum = existingNumbers.length > 0 ? Math.max(...existingNumbers, 0) : 0;
     const nextNum = maxNum + 1;
-    return `PROM-${String(nextNum).padStart(3, '0')}`;
+    return `NP-${currentYear}/${String(nextNum).padStart(3, '0')}`;
   };
 
-  // Create new promissory note
+  // Criação de nova promissória
   const handleCreateNote = (
     noteData: Omit<PromissoryNote, 'id' | 'payments' | 'createdAt' | 'status'>
   ) => {
     const newNote: PromissoryNote = {
       ...noteData,
-      id: `prom_${Date.now()}`,
+      id: `np_${Date.now()}`,
       payments: [],
       status: 'pendente',
       createdAt: new Date().toISOString(),
     };
 
     setNotes((prev) => [newNote, ...prev]);
-    showToast(`Nota promissória ${newNote.code} cadastrada com sucesso!`);
+    showToast(`Nota Promissória ${newNote.code} emitida e registrada com eficácia executiva!`);
   };
 
-  // Add payment / amortização
+  // Amortização parcial ou total
   const handleAddPayment = (
     noteId: string,
-    paymentData: { amount: number; date: string; method: PaymentMethod; note?: string }
+    paymentData: { amount: number; date: string; method: PaymentMethod; note?: string; authCode?: string }
   ) => {
     setNotes((prevNotes) =>
       prevNotes.map((note) => {
@@ -103,6 +103,7 @@ export default function App() {
           date: paymentData.date,
           method: paymentData.method,
           note: paymentData.note,
+          authCode: paymentData.authCode,
           registeredAt: new Date().toISOString(),
         };
 
@@ -113,14 +114,15 @@ export default function App() {
         if (isSettled) {
           try {
             confetti({
-              particleCount: 80,
-              spread: 70,
+              particleCount: 110,
+              spread: 80,
               origin: { y: 0.6 },
+              colors: ['#10b981', '#34d399', '#059669', '#ffffff', '#fbbf24'],
             });
           } catch {}
-          showToast(`Promissória ${note.code} foi totalmente QUITADA! Parabéns!`);
+          showToast(`Cédula ${note.code} foi totalmente LIQUIDADA e RESGATADA!`);
         } else {
-          showToast(`Pagamento de R$ ${paymentData.amount.toFixed(2)} registrado com sucesso!`);
+          showToast(`Amortização de R$ ${paymentData.amount.toFixed(2)} averbada no livro.`);
         }
 
         return {
@@ -132,20 +134,20 @@ export default function App() {
     );
   };
 
-  // Quick settle (quitar saldo restante instantaneamente)
+  // Liquidação integral instantânea
   const handleQuickSettle = (note: PromissoryNote) => {
     const { remainingAmount } = calculateNoteFinancials(note);
     if (remainingAmount <= 0) {
-      showToast('Esta promissória já está quitada.', 'info');
+      showToast('Este título já se encontra integralmente liquidado.', 'info');
       return;
     }
 
     if (
       !window.confirm(
-        `Deseja quitar integralmente o saldo restante de ${new Intl.NumberFormat('pt-BR', {
+        `Confirma a liquidação integral do passivo de ${new Intl.NumberFormat('pt-BR', {
           style: 'currency',
           currency: 'BRL',
-        }).format(remainingAmount)} da promissória ${note.code}?`
+        }).format(remainingAmount)} referente à Nota Promissória ${note.code}?`
       )
     ) {
       return;
@@ -157,7 +159,8 @@ export default function App() {
       amount: remainingAmount,
       date: todayStr,
       method: 'pix' as PaymentMethod,
-      note: 'Quitação integral do saldo devedor',
+      note: 'Liquidação integral para resgate definitivo do título',
+      authCode: `LIQ-INTEGRAL-${Date.now().toString().slice(-6)}`,
       registeredAt: new Date().toISOString(),
     };
 
@@ -174,37 +177,35 @@ export default function App() {
 
     try {
       confetti({
-        particleCount: 100,
-        spread: 80,
+        particleCount: 120,
+        spread: 90,
         origin: { y: 0.6 },
+        colors: ['#10b981', '#34d399', '#059669', '#ffffff', '#fbbf24'],
       });
     } catch {}
 
-    showToast(`Promissória ${note.code} foi quitada com sucesso!`);
+    showToast(`Nota Promissória ${note.code} liquidada com eficácia plena!`);
   };
 
-  // Delete note
+  // Exclusão de nota
   const handleDeleteNote = (id: string) => {
     const target = notes.find((n) => n.id === id);
     if (!target) return;
 
-    if (window.confirm(`Tem certeza que deseja excluir a promissória ${target.code} (${target.title})?`)) {
+    if (window.confirm(`Confirma a baixa e exclusão do registro do título ${target.code} (${target.title})?`)) {
       setNotes((prev) => prev.filter((n) => n.id !== id));
-      showToast(`Promissória ${target.code} excluída.`);
+      showToast(`Título ${target.code} cancelado no livro.`);
     }
   };
 
-  // Keep details modal synchronized with updated note data
   const currentDetailsNote = selectedNoteForDetails
     ? notes.find((n) => n.id === selectedNoteForDetails.id) || null
     : null;
 
-  // Keep payment modal synchronized
   const currentPaymentNote = selectedNoteForPayment
     ? notes.find((n) => n.id === selectedNoteForPayment.id) || null
     : null;
 
-  // If not logged in, render the clean login screen
   if (!isAuthenticated) {
     return <LoginScreen onLogin={handleLogin} />;
   }
@@ -212,23 +213,23 @@ export default function App() {
   const summary = calculateDashboardSummary(notes);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col selection:bg-emerald-500 selection:text-white">
-      {/* Toast Alert */}
+    <div className="min-h-screen bg-[#070a11] text-slate-100 font-['Inter',sans-serif] flex flex-col selection:bg-emerald-500 selection:text-slate-950">
+      {/* Toast Notification */}
       {toast && (
-        <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-5 fade-in duration-300">
-          <div className={`px-4 py-3 rounded-2xl shadow-xl text-white text-xs font-bold flex items-center gap-2 border ${
+        <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-5 fade-in duration-300 font-mono">
+          <div className={`px-4 py-3 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.8)] text-white text-xs font-bold flex items-center gap-2 border ${
             toast.type === 'success'
-              ? 'bg-emerald-700 border-emerald-600 shadow-emerald-700/25'
+              ? 'bg-[#06241a] border-emerald-500/50 text-emerald-300 shadow-emerald-500/10'
               : toast.type === 'warn'
-              ? 'bg-amber-600 border-amber-500 shadow-amber-600/25'
-              : 'bg-slate-900 border-slate-800'
+              ? 'bg-[#291708] border-amber-500/50 text-amber-300'
+              : 'bg-[#0f172a] border-slate-700 text-slate-200'
           }`}>
             <span>{toast.message}</span>
           </div>
         </div>
       )}
 
-      {/* Primary Header with Tabs & User Navigation */}
+      {/* Primary Header */}
       <Header
         activeTab={activeTab}
         onTabChange={(tab) => setActiveTab(tab)}
@@ -261,7 +262,7 @@ export default function App() {
         )}
       </main>
 
-      {/* Modal: Nova Conta / Promissória */}
+      {/* Modais */}
       <NewAccountModal
         isOpen={isNewAccountModalOpen}
         onClose={() => setIsNewAccountModalOpen(false)}
@@ -269,7 +270,6 @@ export default function App() {
         nextCodeSuggestion={getNextCodeSuggestion()}
       />
 
-      {/* Modal: Adicionar Pagamento / Amortização */}
       <AddPaymentModal
         isOpen={!!currentPaymentNote}
         onClose={() => setSelectedNoteForPayment(null)}
@@ -277,7 +277,6 @@ export default function App() {
         onAddPayment={handleAddPayment}
       />
 
-      {/* Modal: Visualizar Detalhes & Documento da Promissória */}
       <PromissoryDetailsModal
         isOpen={!!currentDetailsNote}
         onClose={() => setSelectedNoteForDetails(null)}

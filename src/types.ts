@@ -1,11 +1,12 @@
-export type PaymentMethod = 'pix' | 'dinheiro' | 'cartao' | 'transferencia' | 'boleto' | 'outro';
+export type PaymentMethod = 'pix' | 'dinheiro' | 'cartao' | 'transferencia' | 'boleto' | 'ted_doc';
 
 export interface PaymentRecord {
   id: string;
   amount: number;
-  date: string; // YYYY-MM-DD ou data/hora formatada
+  date: string; // YYYY-MM-DD
   method: PaymentMethod;
   note?: string;
+  authCode?: string; // Código de autenticação bancária / recibo
   registeredAt: string;
 }
 
@@ -13,25 +14,20 @@ export type PromissoryStatus = 'pendente' | 'parcial' | 'quitado' | 'vencido';
 
 export interface PromissoryNote {
   id: string;
-  code: string; // Ex: PROM-001
-  title: string; // Descrição ou finalidade
-  creditor: string; // Favorecido / Beneficiário
-  debtor: string; // Emitente / Devedor
-  totalAmount: number; // Valor nominal
-  issueDate: string; // Data de emissão (YYYY-MM-DD)
-  dueDate: string; // Data de vencimento (YYYY-MM-DD)
-  place?: string; // Praça de pagamento (ex: São Paulo - SP)
-  notes?: string; // Observações adicionais
+  code: string; // Ex: NP-2026/041
+  title: string; // Operação ou Objeto da Promissória
+  creditor: string; // Beneficiário / Credor
+  creditorDoc?: string; // CNPJ/CPF do Credor
+  debtor: string; // Emitente / Devedor Principal
+  debtorDoc?: string; // CNPJ/CPF do Devedor
+  totalAmount: number; // Valor Nominal Exigível
+  issueDate: string; // Data de Emissão (YYYY-MM-DD)
+  dueDate: string; // Data de Vencimento Improrrogável (YYYY-MM-DD)
+  place: string; // Praça de Pagamento / Foro
+  notes?: string; // Cláusulas, vinculação a NF-e ou contrato
   status: PromissoryStatus;
   payments: PaymentRecord[];
   createdAt: string;
-}
-
-export interface AccountFilter {
-  search: string;
-  status: 'todos' | 'pendente' | 'parcial' | 'quitado' | 'vencido';
-  sortBy: 'dueDate' | 'totalAmount' | 'remaining' | 'createdAt';
-  sortOrder: 'asc' | 'desc';
 }
 
 export interface DashboardSummary {
@@ -43,4 +39,5 @@ export interface DashboardSummary {
   partialCount: number;
   paidCount: number;
   overdueCount: number;
+  liquidityRate: number;
 }
