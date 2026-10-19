@@ -3,7 +3,8 @@ import {
   Search, 
   ArrowUpDown, 
   FileQuestion, 
-  Plus 
+  Plus,
+  CreditCard 
 } from 'lucide-react';
 import { DebtAccount } from '../types';
 import { PromissoryCard } from './PromissoryCard';
@@ -12,6 +13,7 @@ import { calculateAccountFinancials, formatCurrency } from '../utils/storage';
 interface AccountsPayableTabProps {
   accounts: DebtAccount[];
   onOpenNewAccount: () => void;
+  onOpenGeneralPaymentModal: () => void;
   onOpenPaymentModal: (account: DebtAccount) => void;
   onOpenDetailsModal: (account: DebtAccount) => void;
   onQuickSettle: (account: DebtAccount) => void;
@@ -21,6 +23,7 @@ interface AccountsPayableTabProps {
 export const AccountsPayableTab: React.FC<AccountsPayableTabProps> = ({
   accounts,
   onOpenNewAccount,
+  onOpenGeneralPaymentModal,
   onOpenPaymentModal,
   onOpenDetailsModal,
   onQuickSettle,
@@ -110,13 +113,24 @@ export const AccountsPayableTab: React.FC<AccountsPayableTabProps> = ({
           </p>
         </div>
 
-        <button
-          onClick={onOpenNewAccount}
-          className="bg-[#11C76F] hover:bg-[#0EAD60] active:scale-95 text-[#0D0E12] font-extrabold text-sm px-4 py-2.5 rounded-xl shadow-[0_2px_12px_rgba(17,199,111,0.2)] flex items-center justify-center gap-1.5 cursor-pointer transition-all self-start sm:self-auto"
-        >
-          <Plus className="w-4 h-4 stroke-[2.5]" />
-          <span>Adicionar Conta</span>
-        </button>
+        <div className="flex items-center gap-2.5 flex-wrap self-start sm:self-auto">
+          <button
+            onClick={onOpenGeneralPaymentModal}
+            className="bg-[#11C76F] hover:bg-[#0EAD60] active:scale-95 text-[#0D0E12] font-extrabold text-sm px-4 py-2.5 rounded-xl shadow-[0_2px_12px_rgba(17,199,111,0.25)] flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+            title="Adicionar pagamento ou amortização"
+          >
+            <CreditCard className="w-4 h-4 stroke-[2.5]" />
+            <span>Adicionar Pagamento</span>
+          </button>
+
+          <button
+            onClick={onOpenNewAccount}
+            className="bg-[#1E212D] hover:bg-[#262936] active:scale-95 text-white font-bold text-sm px-4 py-2.5 rounded-xl border border-[#262936] flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+          >
+            <Plus className="w-4 h-4 stroke-[2.5]" />
+            <span>Nova Conta</span>
+          </button>
+        </div>
       </div>
 
       {/* Filter & Search Bar */}

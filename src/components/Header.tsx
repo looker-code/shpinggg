@@ -2,6 +2,7 @@ import React from 'react';
 import { 
   LayoutDashboard, 
   FileText, 
+  CreditCard,
   Plus, 
   LogOut, 
   Bell,
@@ -13,6 +14,7 @@ interface HeaderProps {
   activeTab: 'inicio' | 'a-pagar';
   onTabChange: (tab: 'inicio' | 'a-pagar') => void;
   onOpenNewAccount: () => void;
+  onOpenPaymentModal: () => void;
   onLogout: () => void;
   pendingCount: number;
   overdueCount: number;
@@ -22,6 +24,7 @@ export const Header: React.FC<HeaderProps> = ({
   activeTab,
   onTabChange,
   onOpenNewAccount,
+  onOpenPaymentModal,
   onLogout,
   pendingCount,
   overdueCount,
@@ -88,14 +91,25 @@ export const Header: React.FC<HeaderProps> = ({
           </nav>
 
           {/* Right Action buttons */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={onOpenPaymentModal}
+              className="bg-[#11C76F] hover:bg-[#0EAD60] text-[#0D0E12] font-extrabold text-xs sm:text-sm px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl shadow-[0_2px_12px_rgba(17,199,111,0.25)] flex items-center gap-1.5 transition-all active:scale-[0.98] cursor-pointer"
+              title="Adicionar valor de pagamento"
+            >
+              <CreditCard className="w-4 h-4 stroke-[2.5]" />
+              <span className="hidden sm:inline">Adicionar Pagamento</span>
+              <span className="sm:hidden">Pagar</span>
+            </button>
+
             <button
               onClick={onOpenNewAccount}
-              className="bg-[#11C76F] hover:bg-[#0EAD60] text-[#0D0E12] font-extrabold text-xs sm:text-sm px-4 py-2.5 rounded-xl shadow-[0_2px_12px_rgba(17,199,111,0.2)] flex items-center gap-1.5 transition-all active:scale-[0.98] cursor-pointer"
+              className="bg-[#1E212D] hover:bg-[#262936] text-white font-bold text-xs sm:text-sm px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-xl border border-[#262936] flex items-center gap-1.5 transition-all active:scale-[0.98] cursor-pointer"
+              title="Cadastrar nova conta ou promissória"
             >
               <Plus className="w-4 h-4 stroke-[2.5]" />
-              <span className="hidden sm:inline">Nova Promissória</span>
-              <span className="sm:hidden">Nova</span>
+              <span className="hidden sm:inline">Nova Conta</span>
+              <span className="sm:hidden">Conta</span>
             </button>
 
             {/* User Profile Pill & Logout */}

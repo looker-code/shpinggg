@@ -194,10 +194,11 @@ export const PromissoryCard: React.FC<PromissoryCardProps> = ({
             <>
               <button
                 onClick={() => onOpenPaymentModal(account)}
-                className="bg-[#11C76F] hover:bg-[#0EAD60] active:scale-95 text-[#0D0E12] font-extrabold text-xs px-3.5 py-2 rounded-xl transition-all flex items-center gap-1 shadow-sm cursor-pointer"
+                className="bg-[#11C76F] hover:bg-[#0EAD60] active:scale-95 text-[#0D0E12] font-extrabold text-xs px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+                title="Adicionar pagamento ou amortização nesta conta"
               >
                 <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                <span>Adicionar Pago</span>
+                <span>Adicionar Pagamento</span>
               </button>
 
               <button

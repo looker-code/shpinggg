@@ -301,7 +301,7 @@ export const PromissoryDetailsModal: React.FC<PromissoryDetailsModalProps> = ({
                 }}
                 className="px-4 py-2 bg-[#11C76F] hover:bg-[#0EAD60] text-[#0D0E12] text-xs font-extrabold rounded-xl shadow-xs transition-colors cursor-pointer"
               >
-                + Adicionar Pago
+                + Adicionar Pagamento
               </button>
               <button
                 onClick={() => {

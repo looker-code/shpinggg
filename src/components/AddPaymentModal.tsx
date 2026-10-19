@@ -18,6 +18,8 @@ interface AddPaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
   account: DebtAccount | null;
+  accounts?: DebtAccount[];
+  onOpenNewAccount?: () => void;
   onAddPayment: (
     accountId: string,
     paymentData: { amount: number; date: string; method: PaymentMethod; note?: string }
@@ -28,10 +30,13 @@ export const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
   isOpen,
   onClose,
   account,
+  accounts = [],
+  onOpenNewAccount,
   onAddPayment,
 }) => {
   const todayStr = new Date().toISOString().split('T')[0];
 
+  const [selectedAccountId, setSelectedAccountId] = useState<string>('');
   // Modos de pagamento: 'valor' (digitar valor X com recálculo) ou 'parcela' (escolher parcela específica)
   const [payMode, setPayMode] = useState<'valor' | 'parcela'>('valor');
   const [amount, setAmount] = useState<string>('');
@@ -42,7 +47,17 @@ export const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
   const [error, setError] = useState<string>('');
 
   useEffect(() => {
-    if (account && isOpen) {
+    if (isOpen) {
+      if (account) {
+        setSelectedAccountId(account.id);
+      } else if (accounts.length > 0) {
+        // Encontra a primeira conta com saldo restante > 0, ou a primeira da lista
+        const accountWithDebt = accounts.find((a) => {
+          const fin = calculateAccountFinancials(a);
+          return fin.totalRemaining > 0;
+        });
+        setSelectedAccountId(accountWithDebt ? accountWithDebt.id : accounts[0].id);
+      }
       setAmount('');
       setDate(todayStr);
       setMethod('pix');
@@ -51,22 +66,70 @@ export const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
       setError('');
       setPayMode('valor');
     }
-  }, [account, isOpen]);
+  }, [account, isOpen, accounts, todayStr]);
 
-  // Se não estiver aberto ou não houver conta, não renderiza
-  if (!isOpen || !account) return null;
+  if (!isOpen) return null;
 
-  const installments = Array.isArray(account.installments) ? account.installments : [];
-  const { totalPaid, totalRemaining, paidInstallments, totalInstallments } = calculateAccountFinancials(account);
+  // Conta ativa selecionada
+  const activeAccount: DebtAccount | null = 
+    (selectedAccountId ? accounts.find((a) => a.id === selectedAccountId) : null) ||
+    account ||
+    (accounts.length > 0 ? accounts[0] : null);
+
+  // Se não houver nenhuma conta cadastrada no sistema
+  if (!activeAccount) {
+    return (
+      <div 
+        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in font-['Plus_Jakarta_Sans',sans-serif]"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) onClose();
+        }}
+      >
+        <div className="bg-[#161821] rounded-3xl w-full max-w-md shadow-2xl border border-[#262936] p-6 text-center space-y-4">
+          <div className="w-14 h-14 rounded-2xl bg-[#1E212D] text-[#8B95A5] flex items-center justify-center mx-auto border border-[#262936]">
+            <CreditCard className="w-7 h-7 text-[#11C76F]" />
+          </div>
+          <div>
+            <h3 className="text-lg font-extrabold text-white">Nenhuma Conta Cadastrada</h3>
+            <p className="text-xs text-[#8B95A5] mt-1">
+              Cadastre primeiro uma conta ou promissória para registrar pagamentos e amortizações.
+            </p>
+          </div>
+          <div className="pt-2 flex items-center justify-center gap-3">
+            <button
+              onClick={onClose}
+              className="px-4 py-2.5 rounded-xl text-xs font-bold text-[#8B95A5] hover:text-white hover:bg-[#1E212D] transition-colors cursor-pointer"
+            >
+              Fechar
+            </button>
+            {onOpenNewAccount && (
+              <button
+                onClick={() => {
+                  onClose();
+                  onOpenNewAccount();
+                }}
+                className="px-5 py-2.5 bg-[#11C76F] hover:bg-[#0EAD60] text-[#0D0E12] font-extrabold text-xs rounded-xl shadow-md transition-all cursor-pointer"
+              >
+                Cadastrar Nova Conta
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const installments = Array.isArray(activeAccount.installments) ? activeAccount.installments : [];
+  const { totalPaid, totalRemaining, paidInstallments, totalInstallments } = calculateAccountFinancials(activeAccount);
 
   // Valor numérico digitado
   const numericAmount = parseFloat(amount.replace(',', '.')) || 0;
 
   // Recálculo do novo saldo restante em tempo real
   const simulatedNewRemaining = Math.max(0, Math.round((totalRemaining - numericAmount) * 100) / 100);
-  const simulatedNewPaid = Math.min(account.totalAmount, Math.round((totalPaid + numericAmount) * 100) / 100);
-  const simulatedNewPercent = account.totalAmount > 0 
-    ? Math.min(100, Math.round((simulatedNewPaid / account.totalAmount) * 100))
+  const simulatedNewPaid = Math.min(activeAccount.totalAmount, Math.round((totalPaid + numericAmount) * 100) / 100);
+  const simulatedNewPercent = activeAccount.totalAmount > 0 
+    ? Math.min(100, Math.round((simulatedNewPaid / activeAccount.totalAmount) * 100))
     : 100;
 
   // Simulação detalhada da quebra do valor X nas parcelas
@@ -159,7 +222,7 @@ export const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
     }
 
     setError('');
-    onAddPayment(account.id, {
+    onAddPayment(activeAccount.id, {
       amount: parsedAmount,
       date,
       method,
@@ -192,11 +255,11 @@ export const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
                   Adicionar Pagamento
                 </h3>
                 <span className="text-[10px] font-mono text-[#11C76F] bg-[#11C76F]/10 border border-[#11C76F]/20 px-2 py-0.5 rounded-full font-bold">
-                  {account.code}
+                  {activeAccount.code}
                 </span>
               </div>
               <p className="text-xs text-[#8B95A5]">
-                Pessoa: <strong className="text-white">{account.debtorName}</strong>
+                Pessoa: <strong className="text-white">{activeAccount.debtorName}</strong>
               </p>
             </div>
           </div>
@@ -210,12 +273,41 @@ export const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
           </button>
         </div>
 
+        {/* Seletor de Pessoa / Conta se houver mais de uma */}
+        {accounts.length > 1 && (
+          <div className="px-5 sm:px-6 pt-3 pb-2.5 bg-[#14161F] border-b border-[#262936]">
+            <label className="text-[11px] font-bold text-[#8B95A5] block mb-1.5 flex items-center justify-between">
+              <span>Selecione a Pessoa / Conta para Quitar:</span>
+              <span className="text-[#11C76F] font-semibold">{accounts.length} contas cadastradas</span>
+            </label>
+            <select
+              value={activeAccount.id}
+              onChange={(e) => {
+                setSelectedAccountId(e.target.value);
+                setAmount('');
+                setSelectedInstallmentNumber(null);
+                setError('');
+              }}
+              className="w-full bg-[#0D0E12] border border-[#262936] text-white text-xs sm:text-sm rounded-xl px-3.5 py-2 font-bold focus:outline-none focus:border-[#11C76F] transition-all cursor-pointer"
+            >
+              {accounts.map((acc) => {
+                const fin = calculateAccountFinancials(acc);
+                return (
+                  <option key={acc.id} value={acc.id}>
+                    {acc.debtorName} ({acc.code}) — {fin.totalRemaining > 0 ? `Falta ${formatCurrency(fin.totalRemaining)}` : 'QUITADO'}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+        )}
+
         {/* Resumo de Saldos */}
         <div className="p-4 sm:p-5 bg-[#12141A]/80 border-b border-[#262936]">
           <div className="grid grid-cols-3 gap-2 bg-[#161821] p-3 rounded-2xl border border-[#262936] text-center">
             <div>
               <span className="text-[10px] uppercase font-bold text-[#8B95A5] block">Dívida Total</span>
-              <span className="text-xs sm:text-sm font-semibold text-white">{formatCurrency(account.totalAmount)}</span>
+              <span className="text-xs sm:text-sm font-semibold text-white">{formatCurrency(activeAccount.totalAmount)}</span>
             </div>
             <div>
               <span className="text-[10px] uppercase font-bold text-[#11C76F] block">Já Pago</span>
@@ -388,13 +480,13 @@ export const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
                 </button>
               )}
 
-              {account.installmentValue > 0 && account.installmentValue * 2 < totalRemaining && (
+              {activeAccount.installmentValue > 0 && activeAccount.installmentValue * 2 < totalRemaining && (
                 <button
                   type="button"
-                  onClick={() => handleSetAmount(account.installmentValue * 2)}
+                  onClick={() => handleSetAmount(activeAccount.installmentValue * 2)}
                   className="px-3 py-1.5 text-xs font-bold bg-[#1E212D] hover:bg-[#262936] border border-[#262936] text-[#8B95A5] hover:text-white rounded-lg cursor-pointer transition-colors"
                 >
-                  2 Parcelas ({formatCurrency(account.installmentValue * 2)})
+                  2 Parcelas ({formatCurrency(activeAccount.installmentValue * 2)})
                 </button>
               )}
 

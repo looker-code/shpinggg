@@ -31,6 +31,7 @@ export default function App() {
   const [isNewAccountModalOpen, setIsNewAccountModalOpen] = useState(false);
   const [selectedAccountForPayment, setSelectedAccountForPayment] = useState<DebtAccount | null>(null);
   const [selectedAccountForDetails, setSelectedAccountForDetails] = useState<DebtAccount | null>(null);
+  const [isGlobalPaymentModalOpen, setIsGlobalPaymentModalOpen] = useState(false);
 
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'warn' } | null>(null);
 
@@ -250,6 +251,7 @@ export default function App() {
         activeTab={activeTab}
         onTabChange={(tab) => setActiveTab(tab)}
         onOpenNewAccount={() => setIsNewAccountModalOpen(true)}
+        onOpenPaymentModal={() => setIsGlobalPaymentModalOpen(true)}
         onLogout={handleLogout}
         pendingCount={summary.openCount + summary.partialCount}
         overdueCount={0}
@@ -262,7 +264,13 @@ export default function App() {
             accounts={accounts}
             onOpenNewAccount={() => setIsNewAccountModalOpen(true)}
             onNavigateToPayable={() => setActiveTab('a-pagar')}
-            onOpenPaymentModal={(acc) => setSelectedAccountForPayment(acc)}
+            onOpenPaymentModal={(acc) => {
+              if (acc) {
+                setSelectedAccountForPayment(acc);
+              } else {
+                setIsGlobalPaymentModalOpen(true);
+              }
+            }}
             onOpenDetailsModal={(acc) => setSelectedAccountForDetails(acc)}
             onQuickSettle={handleQuickSettle}
           />
@@ -270,6 +278,7 @@ export default function App() {
           <AccountsPayableTab
             accounts={accounts}
             onOpenNewAccount={() => setIsNewAccountModalOpen(true)}
+            onOpenGeneralPaymentModal={() => setIsGlobalPaymentModalOpen(true)}
             onOpenPaymentModal={(acc) => setSelectedAccountForPayment(acc)}
             onOpenDetailsModal={(acc) => setSelectedAccountForDetails(acc)}
             onQuickSettle={handleQuickSettle}
@@ -287,9 +296,18 @@ export default function App() {
       />
 
       <AddPaymentModal
-        isOpen={!!currentPaymentAccount}
-        onClose={() => setSelectedAccountForPayment(null)}
+        isOpen={isGlobalPaymentModalOpen || !!currentPaymentAccount}
+        onClose={() => {
+          setSelectedAccountForPayment(null);
+          setIsGlobalPaymentModalOpen(false);
+        }}
         account={currentPaymentAccount}
+        accounts={accounts}
+        onOpenNewAccount={() => {
+          setSelectedAccountForPayment(null);
+          setIsGlobalPaymentModalOpen(false);
+          setIsNewAccountModalOpen(true);
+        }}
         onAddPayment={handleAddPayment}
       />
 

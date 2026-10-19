@@ -10,7 +10,8 @@ import {
   TrendingDown,
   User,
   Clock,
-  Layers
+  Layers,
+  CreditCard
 } from 'lucide-react';
 import { DebtAccount } from '../types';
 import { 
@@ -24,7 +25,7 @@ interface DashboardTabProps {
   accounts: DebtAccount[];
   onOpenNewAccount: () => void;
   onNavigateToPayable: () => void;
-  onOpenPaymentModal: (account: DebtAccount) => void;
+  onOpenPaymentModal: (account?: DebtAccount) => void;
   onOpenDetailsModal: (account: DebtAccount) => void;
   onQuickSettle: (account: DebtAccount) => void;
 }
@@ -99,8 +100,17 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
           {/* Quick Action Buttons */}
           <div className="flex items-center gap-3 flex-wrap">
             <button
+              onClick={() => onOpenPaymentModal()}
+              className="bg-[#11C76F] hover:bg-[#0EAD60] text-[#0D0E12] font-extrabold text-sm px-5 py-3 rounded-2xl shadow-[0_4px_16px_rgba(17,199,111,0.25)] flex items-center gap-2 transition-all cursor-pointer active:scale-95"
+              title="Adicionar valor de pagamento ou amortização"
+            >
+              <CreditCard className="w-4 h-4 stroke-[2.5]" />
+              <span>Adicionar Pagamento</span>
+            </button>
+
+            <button
               onClick={onOpenNewAccount}
-              className="bg-[#11C76F] hover:bg-[#0EAD60] text-[#0D0E12] font-extrabold text-sm px-5 py-3 rounded-2xl shadow-[0_4px_16px_rgba(17,199,111,0.2)] flex items-center gap-2 transition-all cursor-pointer active:scale-95"
+              className="bg-[#1E212D] hover:bg-[#262936] text-white font-bold text-sm px-5 py-3 rounded-2xl border border-[#262936] flex items-center gap-2 transition-all cursor-pointer"
             >
               <Plus className="w-4 h-4 stroke-[2.5]" />
               <span>Adicionar Conta</span>
@@ -108,7 +118,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
 
             <button
               onClick={onNavigateToPayable}
-              className="bg-[#1E212D] hover:bg-[#262936] text-white font-bold text-sm px-5 py-3 rounded-2xl border border-[#262936] flex items-center gap-2 transition-all cursor-pointer"
+              className="bg-[#12141A] hover:bg-[#1E212D] text-[#8B95A5] hover:text-white font-bold text-sm px-4 py-3 rounded-2xl border border-[#262936] flex items-center gap-2 transition-all cursor-pointer"
             >
               <span>Ver Todas as Contas</span>
               <ChevronRight className="w-4 h-4 text-[#8B95A5]" />
