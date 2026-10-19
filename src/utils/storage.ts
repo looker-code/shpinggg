@@ -52,13 +52,17 @@ export const generateInstallments = (totalAmount: number, installmentValue: numb
 export const sanitizeAccount = (raw: any): DebtAccount => {
   const totalAmount = Math.max(0, Number(raw?.totalAmount) || 0);
   const installmentValue = Math.max(0, Number(raw?.installmentValue) || totalAmount || 1);
-  const debts = Array.isArray(raw?.debts)
+  let debts = Array.isArray(raw?.debts)
     ? raw.debts.map((d: any, idx: number) => ({
         id: String(d?.id || `d_${idx}`),
         name: String(d?.name || `Conta ${idx + 1}`),
         amount: Math.max(0, Number(d?.amount) || 0),
       }))
     : [];
+
+  if (debts.length === 0 && totalAmount > 0) {
+    debts = [{ id: `d_${Date.now()}`, name: String(raw?.title || 'Dívida Principal'), amount: totalAmount }];
+  }
 
   let installments: Installment[] = [];
   if (Array.isArray(raw?.installments) && raw.installments.length > 0) {
@@ -97,7 +101,7 @@ export const sanitizeAccount = (raw: any): DebtAccount => {
   return {
     id: String(raw?.id || `acc_${Date.now()}`),
     code: String(raw?.code || 'CT-001'),
-    debtorName: String(raw?.debtorName || 'Sem Nome'),
+    debtorName: String(raw?.debtorName || raw?.debtor || raw?.title || 'Sem Nome'),
     debts,
     totalAmount,
     installmentValue,
@@ -326,6 +330,19 @@ export const loadAccounts = (): DebtAccount[] => {
       const parsedV3 = JSON.parse(rawV3);
       if (Array.isArray(parsedV3) && parsedV3.length > 0) {
         const sanitized = parsedV3.map(sanitizeAccount);
+        saveAccounts(sanitized);
+        return sanitized;
+      }
+    }
+  } catch {}
+
+  // Tenta migrar da base antiga de promissórias se existir
+  try {
+    const rawLegacy = localStorage.getItem('promissory_notes_db');
+    if (rawLegacy) {
+      const parsedLegacy = JSON.parse(rawLegacy);
+      if (Array.isArray(parsedLegacy) && parsedLegacy.length > 0) {
+        const sanitized = parsedLegacy.map(sanitizeAccount);
         saveAccounts(sanitized);
         return sanitized;
       }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   CheckCircle2, 
@@ -132,8 +132,8 @@ export const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
     ? Math.min(100, Math.round((simulatedNewPaid / activeAccount.totalAmount) * 100))
     : 100;
 
-  // Simulação detalhada da quebra do valor X nas parcelas
-  const installmentSimulation = useMemo(() => {
+  // Simulação detalhada da quebra do valor X nas parcelas (cálculo reativo instantâneo)
+  const installmentSimulation = (() => {
     if (numericAmount <= 0) return [];
 
     let remainingMoney = numericAmount;
@@ -185,7 +185,7 @@ export const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
     });
 
     return simList;
-  }, [numericAmount, installments]);
+  })();
 
   // Próxima parcela em aberto para pagamento rápido
   const nextOpenInstallment = installments.find(

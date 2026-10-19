@@ -287,37 +287,43 @@ export default function App() {
         )}
       </main>
 
-      {/* Modais */}
-      <NewAccountModal
-        isOpen={isNewAccountModalOpen}
-        onClose={() => setIsNewAccountModalOpen(false)}
-        onSave={handleCreateAccount}
-        nextCodeSuggestion={getNextCodeSuggestion()}
-      />
+      {/* Modais com montagem condicional */}
+      {isNewAccountModalOpen && (
+        <NewAccountModal
+          isOpen={true}
+          onClose={() => setIsNewAccountModalOpen(false)}
+          onSave={handleCreateAccount}
+          nextCodeSuggestion={getNextCodeSuggestion()}
+        />
+      )}
 
-      <AddPaymentModal
-        isOpen={isGlobalPaymentModalOpen || !!currentPaymentAccount}
-        onClose={() => {
-          setSelectedAccountForPayment(null);
-          setIsGlobalPaymentModalOpen(false);
-        }}
-        account={currentPaymentAccount}
-        accounts={accounts}
-        onOpenNewAccount={() => {
-          setSelectedAccountForPayment(null);
-          setIsGlobalPaymentModalOpen(false);
-          setIsNewAccountModalOpen(true);
-        }}
-        onAddPayment={handleAddPayment}
-      />
+      {(isGlobalPaymentModalOpen || !!currentPaymentAccount) && (
+        <AddPaymentModal
+          isOpen={true}
+          onClose={() => {
+            setSelectedAccountForPayment(null);
+            setIsGlobalPaymentModalOpen(false);
+          }}
+          account={currentPaymentAccount}
+          accounts={accounts}
+          onOpenNewAccount={() => {
+            setSelectedAccountForPayment(null);
+            setIsGlobalPaymentModalOpen(false);
+            setIsNewAccountModalOpen(true);
+          }}
+          onAddPayment={handleAddPayment}
+        />
+      )}
 
-      <PromissoryDetailsModal
-        isOpen={!!currentDetailsAccount}
-        onClose={() => setSelectedAccountForDetails(null)}
-        account={currentDetailsAccount}
-        onOpenPaymentModal={(acc) => setSelectedAccountForPayment(acc)}
-        onQuickSettle={handleQuickSettle}
-      />
+      {!!currentDetailsAccount && (
+        <PromissoryDetailsModal
+          isOpen={true}
+          onClose={() => setSelectedAccountForDetails(null)}
+          account={currentDetailsAccount}
+          onOpenPaymentModal={(acc) => setSelectedAccountForPayment(acc)}
+          onQuickSettle={handleQuickSettle}
+        />
+      )}
     </div>
   );
 }
