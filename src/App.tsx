@@ -214,11 +214,11 @@ export default function App() {
 
   // Sincronização dos modais com os dados atualizados
   const currentDetailsAccount = selectedAccountForDetails
-    ? accounts.find((a) => a.id === selectedAccountForDetails.id) || null
+    ? accounts.find((a) => a.id === selectedAccountForDetails.id) || selectedAccountForDetails
     : null;
 
   const currentPaymentAccount = selectedAccountForPayment
-    ? accounts.find((a) => a.id === selectedAccountForPayment.id) || null
+    ? accounts.find((a) => a.id === selectedAccountForPayment.id) || selectedAccountForPayment
     : null;
 
   if (!isAuthenticated) {

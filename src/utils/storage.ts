@@ -1,21 +1,35 @@
 import { DebtAccount, Installment, DashboardSummary } from '../types';
 
-const STORAGE_KEY = 'promissory_pay_accounts_v3';
+const STORAGE_KEY = 'promissory_pay_accounts_v4';
 
-// --- Geração de parcelas ---
+// --- Geração segura de parcelas ---
 export const generateInstallments = (totalAmount: number, installmentValue: number): Installment[] => {
-  if (installmentValue <= 0 || totalAmount <= 0) return [];
-  
-  const fullInstallments = Math.floor(totalAmount / installmentValue);
-  const remainder = Math.round((totalAmount - fullInstallments * installmentValue) * 100) / 100;
-  
+  const total = Math.max(0, Number(totalAmount) || 0);
+  const instVal = Math.max(0, Number(installmentValue) || 0);
+
+  if (total <= 0) return [];
+  if (instVal <= 0 || instVal >= total) {
+    return [
+      {
+        id: `inst_${Date.now()}_1`,
+        number: 1,
+        originalAmount: total,
+        paidAmount: 0,
+        status: 'pendente',
+      },
+    ];
+  }
+
+  const fullInstallments = Math.floor(total / instVal);
+  const remainder = Math.round((total - fullInstallments * instVal) * 100) / 100;
+
   const installments: Installment[] = [];
 
   for (let i = 1; i <= fullInstallments; i++) {
     installments.push({
       id: `inst_${Date.now()}_${i}`,
       number: i,
-      originalAmount: installmentValue,
+      originalAmount: instVal,
       paidAmount: 0,
       status: 'pendente',
     });
@@ -34,19 +48,83 @@ export const generateInstallments = (totalAmount: number, installmentValue: numb
   return installments;
 };
 
+// --- Sanitizador de contas (Garante que nunca haja undefined ou crash) ---
+export const sanitizeAccount = (raw: any): DebtAccount => {
+  const totalAmount = Math.max(0, Number(raw?.totalAmount) || 0);
+  const installmentValue = Math.max(0, Number(raw?.installmentValue) || totalAmount || 1);
+  const debts = Array.isArray(raw?.debts)
+    ? raw.debts.map((d: any, idx: number) => ({
+        id: String(d?.id || `d_${idx}`),
+        name: String(d?.name || `Conta ${idx + 1}`),
+        amount: Math.max(0, Number(d?.amount) || 0),
+      }))
+    : [];
+
+  let installments: Installment[] = [];
+  if (Array.isArray(raw?.installments) && raw.installments.length > 0) {
+    installments = raw.installments.map((inst: any, idx: number) => {
+      const orig = Math.max(0, Number(inst?.originalAmount) || 0);
+      const paid = Math.max(0, Number(inst?.paidAmount) || 0);
+      let status: 'pendente' | 'pago' | 'parcial' = 'pendente';
+      if (paid >= orig - 0.001 && orig > 0) status = 'pago';
+      else if (paid > 0.001) status = 'parcial';
+
+      return {
+        id: String(inst?.id || `inst_${Date.now()}_${idx + 1}`),
+        number: Number(inst?.number) || idx + 1,
+        originalAmount: orig,
+        paidAmount: paid,
+        status: inst?.status || status,
+        paidAt: inst?.paidAt,
+      };
+    });
+  } else {
+    installments = generateInstallments(totalAmount, installmentValue);
+  }
+
+  const payments = Array.isArray(raw?.payments)
+    ? raw.payments.map((p: any, idx: number) => ({
+        id: String(p?.id || `p_${idx}`),
+        amount: Math.max(0, Number(p?.amount) || 0),
+        date: String(p?.date || new Date().toISOString().split('T')[0]),
+        method: p?.method || 'pix',
+        note: p?.note || '',
+        registeredAt: p?.registeredAt || new Date().toISOString(),
+        distribution: Array.isArray(p?.distribution) ? p.distribution : [],
+      }))
+    : [];
+
+  return {
+    id: String(raw?.id || `acc_${Date.now()}`),
+    code: String(raw?.code || 'CT-001'),
+    debtorName: String(raw?.debtorName || 'Sem Nome'),
+    debts,
+    totalAmount,
+    installmentValue,
+    installments,
+    payments,
+    status: raw?.status || 'em_aberto',
+    createdAt: String(raw?.createdAt || new Date().toISOString()),
+    notes: raw?.notes || '',
+  };
+};
+
 // --- Distribuição de pagamento sequencial nas parcelas ---
 export const distributePayment = (
   installments: Installment[],
   paymentAmount: number
 ): { updatedInstallments: Installment[]; distribution: { installmentNumber: number; amount: number }[] } => {
-  let remaining = paymentAmount;
+  let remaining = Math.max(0, Number(paymentAmount) || 0);
   const distribution: { installmentNumber: number; amount: number }[] = [];
-  
-  const updated = installments.map((inst) => {
+  const safeInsts = Array.isArray(installments) ? installments : [];
+
+  const updated = safeInsts.map((inst) => {
     if (remaining <= 0.001 || inst.status === 'pago') return { ...inst };
-    
-    const owed = Math.round((inst.originalAmount - inst.paidAmount) * 100) / 100;
-    if (owed <= 0.001) return { ...inst, status: 'pago' as const, paidAmount: inst.originalAmount };
+
+    const owed = Math.max(0, Math.round((inst.originalAmount - inst.paidAmount) * 100) / 100);
+    if (owed <= 0.001) {
+      return { ...inst, status: 'pago' as const, paidAmount: inst.originalAmount };
+    }
 
     const toApply = Math.min(remaining, owed);
     remaining = Math.round((remaining - toApply) * 100) / 100;
@@ -69,16 +147,20 @@ export const distributePayment = (
 
 // --- Cálculos de status da conta ---
 export const calculateAccountFinancials = (account: DebtAccount) => {
-  const totalPaid = account.installments.reduce((sum, i) => sum + i.paidAmount, 0);
-  const totalRemaining = Math.max(0, Math.round((account.totalAmount - totalPaid) * 100) / 100);
-  const progressPercent = account.totalAmount > 0
-    ? Math.min(100, Math.round((totalPaid / account.totalAmount) * 100))
+  const safeAccount = account || { totalAmount: 0, installments: [] };
+  const installments = Array.isArray(safeAccount.installments) ? safeAccount.installments : [];
+  
+  const totalPaid = installments.reduce((sum, i) => sum + (Number(i?.paidAmount) || 0), 0);
+  const totalAmount = Math.max(0, Number(safeAccount.totalAmount) || 0);
+  const totalRemaining = Math.max(0, Math.round((totalAmount - totalPaid) * 100) / 100);
+  const progressPercent = totalAmount > 0
+    ? Math.min(100, Math.round((totalPaid / totalAmount) * 100))
     : 100;
 
-  const paidInstallments = account.installments.filter((i) => i.status === 'pago').length;
-  const totalInstallments = account.installments.length;
-  const pendingInstallments = account.installments.filter((i) => i.status === 'pendente').length;
-  const partialInstallments = account.installments.filter((i) => i.status === 'parcial').length;
+  const paidInstallments = installments.filter((i) => i?.status === 'pago').length;
+  const totalInstallments = installments.length;
+  const pendingInstallments = installments.filter((i) => i?.status === 'pendente').length;
+  const partialInstallments = installments.filter((i) => i?.status === 'parcial').length;
 
   let computedStatus: 'em_aberto' | 'parcial' | 'quitado';
   if (totalRemaining <= 0.01) {
@@ -109,9 +191,12 @@ export const calculateDashboardSummary = (accounts: DebtAccount[]): DashboardSum
   let partialCount = 0;
   let paidCount = 0;
 
-  accounts.forEach((acc) => {
-    totalOriginal += acc.totalAmount;
-    const { totalPaid: paid, computedStatus } = calculateAccountFinancials(acc);
+  const safeList = Array.isArray(accounts) ? accounts : [];
+
+  safeList.forEach((acc) => {
+    const safe = sanitizeAccount(acc);
+    totalOriginal += safe.totalAmount;
+    const { totalPaid: paid, computedStatus } = calculateAccountFinancials(safe);
     totalPaid += paid;
     if (computedStatus === 'quitado') paidCount++;
     else if (computedStatus === 'parcial') partialCount++;
@@ -125,7 +210,7 @@ export const calculateDashboardSummary = (accounts: DebtAccount[]): DashboardSum
     totalOriginal,
     totalPaid,
     totalPending,
-    totalAccountsCount: accounts.length,
+    totalAccountsCount: safeList.length,
     openCount,
     partialCount,
     paidCount,
@@ -135,11 +220,12 @@ export const calculateDashboardSummary = (accounts: DebtAccount[]): DashboardSum
 
 // --- Formatação ---
 export const formatCurrency = (value: number): string => {
+  const num = Number(value) || 0;
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL',
     minimumFractionDigits: 2,
-  }).format(value || 0);
+  }).format(num);
 };
 
 export const formatDate = (dateString?: string): string => {
@@ -153,7 +239,7 @@ export const formatDate = (dateString?: string): string => {
   return dateString;
 };
 
-// --- Seed Data (Dados de Exemplo) ---
+// --- Seed Data com contas realistas ---
 export const SEED_ACCOUNTS: DebtAccount[] = [
   {
     id: 'acc-1',
@@ -173,7 +259,7 @@ export const SEED_ACCOUNTS: DebtAccount[] = [
     ],
     payments: [
       { id: 'p1a', amount: 500, date: '2026-09-15', method: 'pix', note: 'Primeira parcela', registeredAt: '2026-09-15T14:00:00Z' },
-      { id: 'p1b', amount: 300, date: '2026-10-05', method: 'dinheiro', note: 'Pagamento parcial', registeredAt: '2026-10-05T10:00:00Z' },
+      { id: 'p1b', amount: 300, date: '2026-10-05', method: 'dinheiro', note: 'Pagamento parcial P2', registeredAt: '2026-10-05T10:00:00Z' },
     ],
     status: 'parcial',
     createdAt: '2026-09-01T08:00:00Z',
@@ -214,28 +300,46 @@ export const SEED_ACCOUNTS: DebtAccount[] = [
     ],
     payments: [
       { id: 'p3a', amount: 400, date: '2026-09-20', method: 'pix', note: 'Parcela 1', registeredAt: '2026-09-20T11:00:00Z' },
-      { id: 'p3b', amount: 380, date: '2026-10-15', method: 'transferencia', note: 'Quitação', registeredAt: '2026-10-15T16:00:00Z' },
+      { id: 'p3b', amount: 380, date: '2026-10-15', method: 'transferencia', note: 'Quitação final', registeredAt: '2026-10-15T16:00:00Z' },
     ],
     status: 'quitado',
     createdAt: '2026-09-05T09:00:00Z',
   },
 ];
 
-// --- Persistência ---
+// --- Persistência Segura ---
 export const loadAccounts = (): DebtAccount[] => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map(sanitizeAccount);
+      }
     }
   } catch {}
-  saveAccounts(SEED_ACCOUNTS);
-  return SEED_ACCOUNTS;
+  
+  // Tenta migrar da chave v3 caso exista
+  try {
+    const rawV3 = localStorage.getItem('promissory_pay_accounts_v3');
+    if (rawV3) {
+      const parsedV3 = JSON.parse(rawV3);
+      if (Array.isArray(parsedV3) && parsedV3.length > 0) {
+        const sanitized = parsedV3.map(sanitizeAccount);
+        saveAccounts(sanitized);
+        return sanitized;
+      }
+    }
+  } catch {}
+
+  const defaultList = SEED_ACCOUNTS.map(sanitizeAccount);
+  saveAccounts(defaultList);
+  return defaultList;
 };
 
 export const saveAccounts = (accounts: DebtAccount[]): void => {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(accounts));
+    const safe = Array.isArray(accounts) ? accounts.map(sanitizeAccount) : [];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(safe));
   } catch {}
 };
