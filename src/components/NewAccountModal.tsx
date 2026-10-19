@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, PlusCircle, Building2, User, Calendar, DollarSign, FileText, MapPin, Scale } from 'lucide-react';
+import { X, Plus, Building2, User, Calendar, DollarSign, FileText, MapPin } from 'lucide-react';
 import { PromissoryNote } from '../types';
 
 interface NewAccountModalProps {
@@ -22,12 +22,12 @@ export const NewAccountModal: React.FC<NewAccountModalProps> = ({
   const [title, setTitle] = useState('');
   const [creditor, setCreditor] = useState('');
   const [creditorDoc, setCreditorDoc] = useState('');
-  const [debtor, setDebtor] = useState('Soluções Empresariais & Manufatura Ltda.');
+  const [debtor, setDebtor] = useState('Minha Empresa / Comércio');
   const [debtorDoc, setDebtorDoc] = useState('08.723.119/0001-42');
   const [totalAmount, setTotalAmount] = useState<string>('');
   const [issueDate, setIssueDate] = useState(todayStr);
   const [dueDate, setDueDate] = useState(in30Days);
-  const [place, setPlace] = useState('Comarca de São Paulo - SP');
+  const [place, setPlace] = useState('São Paulo - SP');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState('');
 
@@ -38,12 +38,12 @@ export const NewAccountModal: React.FC<NewAccountModalProps> = ({
     const parsedAmount = parseFloat(totalAmount.replace(',', '.'));
 
     if (!title.trim() || !creditor.trim() || isNaN(parsedAmount) || parsedAmount <= 0) {
-      setError('Por favor, informe a descrição da obrigação, o beneficiário e o valor nominal.');
+      setError('Por favor, informe a descrição, o favorecido e o valor da promissória.');
       return;
     }
 
     if (!dueDate) {
-      setError('A data de vencimento é indispensável para a validade do título.');
+      setError('A data de vencimento é obrigatória.');
       return;
     }
 
@@ -53,13 +53,13 @@ export const NewAccountModal: React.FC<NewAccountModalProps> = ({
       title: title.trim(),
       creditor: creditor.trim(),
       creditorDoc: creditorDoc.trim() || undefined,
-      debtor: debtor.trim() || 'Soluções Empresariais & Manufatura Ltda.',
+      debtor: debtor.trim() || 'Minha Empresa / Comércio',
       debtorDoc: debtorDoc.trim() || undefined,
       totalAmount: parsedAmount,
       issueDate,
       dueDate,
-      place: place.trim() || 'Comarca de São Paulo - SP',
-      notes: notes.trim() || 'Título executivo emitido sob as normas da Lei Uniforme de Genebra (Dec. 57.663/66).',
+      place: place.trim() || 'São Paulo - SP',
+      notes: notes.trim() || undefined,
     });
 
     setTitle('');
@@ -71,32 +71,27 @@ export const NewAccountModal: React.FC<NewAccountModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in font-['Inter',sans-serif]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in font-['Plus_Jakarta_Sans',sans-serif]">
       <div 
-        className="bg-[#0e1424] rounded-3xl w-full max-w-xl shadow-[0_20px_60px_rgba(0,0,0,0.8)] border border-slate-800 overflow-hidden flex flex-col max-h-[92vh]"
+        className="bg-[#161821] rounded-3xl w-full max-w-lg shadow-2xl border border-[#262936] overflow-hidden flex flex-col max-h-[92vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="bg-[#080c16] text-white p-5 px-6 flex items-center justify-between border-b border-slate-800">
+        <div className="bg-[#12141A] p-5 px-6 flex items-center justify-between border-b border-[#262936]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-950/80 text-emerald-400 border border-emerald-500/30 flex items-center justify-center">
-              <Scale className="w-5 h-5 text-emerald-400" />
+            <div className="w-10 h-10 rounded-xl bg-[#11C76F]/10 text-[#11C76F] border border-[#11C76F]/20 flex items-center justify-center font-bold">
+              <Plus className="w-5 h-5 stroke-[2.5]" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-bold text-base font-['Space_Grotesk',sans-serif] text-white">
-                  Emissão de Nota Promissória
-                </h3>
-                <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/80 border border-emerald-500/30 px-1.5 py-0.5 rounded">
-                  TÍTULO EXECUTIVO
-                </span>
-              </div>
-              <p className="text-xs text-slate-400">Formalização de compromisso cambial perante a tesouraria</p>
+              <h3 className="font-bold text-base text-white">
+                Nova Promissória
+              </h3>
+              <p className="text-xs text-[#8B95A5]">Cadastro de novo compromisso a pagar</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+            className="p-1.5 text-[#8B95A5] hover:text-white hover:bg-[#1E212D] rounded-xl transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -105,34 +100,34 @@ export const NewAccountModal: React.FC<NewAccountModalProps> = ({
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
           {error && (
-            <div className="p-3 bg-rose-950/60 border border-rose-500/40 text-rose-300 text-xs font-semibold rounded-xl text-center">
+            <div className="p-3 bg-[#241318] border border-[#FF3B30]/30 text-[#FF453A] text-xs font-semibold rounded-xl text-center">
               {error}
             </div>
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {/* Código do Título */}
+            {/* Código */}
             <div>
-              <label className="block text-xs font-mono font-bold text-slate-300 uppercase mb-1">
-                Número do Título / Série
+              <label className="block text-xs font-semibold text-[#8B95A5] mb-1">
+                Número / Código
               </label>
               <input
                 type="text"
                 required
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
-                placeholder="Ex: NP-2026/095"
-                className="w-full px-3.5 py-2.5 bg-[#131b2e] border border-slate-800 rounded-xl text-sm font-mono font-bold text-emerald-400 focus:outline-none focus:border-emerald-500"
+                placeholder="Ex: NP-2026/005"
+                className="w-full px-3.5 py-2.5 bg-[#12141A] border border-[#262936] rounded-xl text-sm font-mono font-bold text-[#11C76F] focus:outline-none focus:border-[#11C76F]"
               />
             </div>
 
             {/* Valor Nominal */}
             <div>
-              <label className="block text-xs font-mono font-bold text-slate-300 uppercase mb-1">
-                Valor Nominal Exigível (R$) *
+              <label className="block text-xs font-semibold text-[#8B95A5] mb-1">
+                Valor Total (R$) *
               </label>
               <div className="relative">
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-mono font-bold text-slate-500">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-[#8B95A5]">
                   R$
                 </span>
                 <input
@@ -143,87 +138,73 @@ export const NewAccountModal: React.FC<NewAccountModalProps> = ({
                   value={totalAmount}
                   onChange={(e) => setTotalAmount(e.target.value)}
                   placeholder="0,00"
-                  className="w-full pl-9 pr-3.5 py-2.5 bg-[#131b2e] border border-slate-800 rounded-xl text-sm font-mono font-bold text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full pl-9 pr-3.5 py-2.5 bg-[#12141A] border border-[#262936] rounded-xl text-sm font-bold text-white focus:outline-none focus:border-[#11C76F]"
                 />
               </div>
             </div>
           </div>
 
-          {/* Objeto / Finalidade */}
+          {/* Descrição / Título */}
           <div>
-            <label className="block text-xs font-bold text-slate-300 uppercase mb-1">
-              Objeto da Obrigação / Descrição Comercial *
+            <label className="block text-xs font-semibold text-[#8B95A5] mb-1">
+              Descrição / Finalidade *
             </label>
             <input
               type="text"
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Ex: Fornecimento de matéria-prima para linha de usinagem"
-              className="w-full px-3.5 py-2.5 bg-[#131b2e] border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+              placeholder="Ex: Compra de mercadorias para revenda"
+              className="w-full px-3.5 py-2.5 bg-[#12141A] border border-[#262936] rounded-xl text-sm text-white placeholder-[#5F6876] focus:outline-none focus:border-[#11C76F]"
             />
           </div>
 
-          {/* Credor / Beneficiário + CNPJ */}
+          {/* Favorecido / Credor */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="sm:col-span-2">
-              <label className="block text-xs font-bold text-slate-300 uppercase mb-1">
-                Beneficiário / Credor (À ordem de quem pagar) *
+              <label className="block text-xs font-semibold text-[#8B95A5] mb-1">
+                Favorecido / Credor *
               </label>
               <div className="relative">
-                <Building2 className="w-4 h-4 text-emerald-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Building2 className="w-4 h-4 text-[#11C76F] absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   required
                   value={creditor}
                   onChange={(e) => setCreditor(e.target.value)}
-                  placeholder="Ex: Petroquímica & Resinas União S.A."
-                  className="w-full pl-10 pr-3.5 py-2.5 bg-[#131b2e] border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                  placeholder="Ex: Distribuidora União Ltda"
+                  className="w-full pl-10 pr-3.5 py-2.5 bg-[#12141A] border border-[#262936] rounded-xl text-sm text-white placeholder-[#5F6876] focus:outline-none focus:border-[#11C76F]"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-mono font-bold text-slate-300 uppercase mb-1">
-                CNPJ / CPF
+              <label className="block text-xs font-semibold text-[#8B95A5] mb-1">
+                CPF / CNPJ
               </label>
               <input
                 type="text"
                 value={creditorDoc}
                 onChange={(e) => setCreditorDoc(e.target.value)}
                 placeholder="00.000.000/0001-00"
-                className="w-full px-3.5 py-2.5 bg-[#131b2e] border border-slate-800 rounded-xl text-xs font-mono text-slate-300 focus:outline-none focus:border-emerald-500"
+                className="w-full px-3.5 py-2.5 bg-[#12141A] border border-[#262936] rounded-xl text-xs text-white focus:outline-none focus:border-[#11C76F]"
               />
             </div>
           </div>
 
           {/* Emitente / Devedor */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-bold text-slate-300 uppercase mb-1">
-                Emitente / Devedor Principal
-              </label>
-              <div className="relative">
-                <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={debtor}
-                  onChange={(e) => setDebtor(e.target.value)}
-                  placeholder="Razão Social da empresa emitente"
-                  className="w-full pl-10 pr-3.5 py-2.5 bg-[#131b2e] border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-mono font-bold text-slate-300 uppercase mb-1">
-                CNPJ Emitente
-              </label>
+          <div>
+            <label className="block text-xs font-semibold text-[#8B95A5] mb-1">
+              Devedor / Emitente
+            </label>
+            <div className="relative">
+              <User className="w-4 h-4 text-[#8B95A5] absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                value={debtorDoc}
-                onChange={(e) => setDebtorDoc(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-[#131b2e] border border-slate-800 rounded-xl text-xs font-mono text-slate-300 focus:outline-none focus:border-emerald-500"
+                value={debtor}
+                onChange={(e) => setDebtor(e.target.value)}
+                placeholder="Nome de quem irá pagar"
+                className="w-full pl-10 pr-3.5 py-2.5 bg-[#12141A] border border-[#262936] rounded-xl text-sm text-white focus:outline-none focus:border-[#11C76F]"
               />
             </div>
           </div>
@@ -231,78 +212,78 @@ export const NewAccountModal: React.FC<NewAccountModalProps> = ({
           {/* Datas */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-mono font-bold text-slate-300 uppercase mb-1">
-                Data de Emissão Cambial
+              <label className="block text-xs font-semibold text-[#8B95A5] mb-1">
+                Data de Emissão
               </label>
               <input
                 type="date"
                 required
                 value={issueDate}
                 onChange={(e) => setIssueDate(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-[#131b2e] border border-slate-800 rounded-xl text-xs sm:text-sm font-mono text-white focus:outline-none focus:border-emerald-500"
+                className="w-full px-3.5 py-2.5 bg-[#12141A] border border-[#262936] rounded-xl text-xs sm:text-sm text-white focus:outline-none focus:border-[#11C76F]"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-mono font-bold text-slate-300 uppercase mb-1">
-                Vencimento Improrrogável *
+              <label className="block text-xs font-semibold text-[#8B95A5] mb-1">
+                Data de Vencimento *
               </label>
               <input
                 type="date"
                 required
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-[#131b2e] border border-slate-800 rounded-xl text-xs sm:text-sm font-mono text-emerald-400 font-bold focus:outline-none focus:border-emerald-500"
+                className="w-full px-3.5 py-2.5 bg-[#12141A] border border-[#262936] rounded-xl text-xs sm:text-sm text-[#11C76F] font-bold focus:outline-none focus:border-[#11C76F]"
               />
             </div>
           </div>
 
           {/* Praça de Pagamento */}
           <div>
-            <label className="block text-xs font-bold text-slate-300 uppercase mb-1">
-              Praça de Pagamento & Foro de Competência
+            <label className="block text-xs font-semibold text-[#8B95A5] mb-1">
+              Praça de Pagamento (Cidade / UF)
             </label>
             <div className="relative">
-              <MapPin className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <MapPin className="w-4 h-4 text-[#8B95A5] absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={place}
                 onChange={(e) => setPlace(e.target.value)}
-                placeholder="Ex: Comarca de São Paulo - SP"
-                className="w-full pl-10 pr-3.5 py-2.5 bg-[#131b2e] border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-emerald-500"
+                placeholder="Ex: São Paulo - SP"
+                className="w-full pl-10 pr-3.5 py-2.5 bg-[#12141A] border border-[#262936] rounded-xl text-sm text-white focus:outline-none focus:border-[#11C76F]"
               />
             </div>
           </div>
 
-          {/* Observações / Cláusulas */}
+          {/* Observações */}
           <div>
-            <label className="block text-xs font-bold text-slate-300 uppercase mb-1">
-              Cláusulas Especiais / Vinculação a NF-e ou Contrato
+            <label className="block text-xs font-semibold text-[#8B95A5] mb-1">
+              Observações / Notas adicionais
             </label>
             <textarea
               rows={2}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Ex: Vinculado ao Contrato Comercial nº 489/2026 e NF-e nº 008.912..."
-              className="w-full px-3.5 py-2 bg-[#131b2e] border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 resize-none font-mono"
+              placeholder="Ex: Acordo com desconto para pagamento antecipado..."
+              className="w-full px-3.5 py-2 bg-[#12141A] border border-[#262936] rounded-xl text-xs text-white placeholder-[#5F6876] focus:outline-none focus:border-[#11C76F] resize-none"
             />
           </div>
 
-          {/* Actions */}
-          <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-800">
+          {/* Submit */}
+          <div className="pt-3 flex items-center justify-end gap-2 border-t border-[#262936]">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+              className="px-4 py-2.5 rounded-xl text-xs font-bold text-[#8B95A5] hover:text-white hover:bg-[#1E212D] transition-colors cursor-pointer"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all cursor-pointer flex items-center gap-1.5"
+              className="px-5 py-2.5 bg-[#11C76F] hover:bg-[#0EAD60] text-[#0D0E12] text-xs font-extrabold rounded-xl shadow-[0_2px_12px_rgba(17,199,111,0.2)] transition-all cursor-pointer flex items-center gap-1.5"
             >
-              <PlusCircle className="w-4 h-4" />
-              <span>Registrar e Emitir Promissória</span>
+              <Plus className="w-4 h-4 stroke-[2.5]" />
+              <span>Salvar Promissória</span>
             </button>
           </div>
         </form>

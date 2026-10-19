@@ -1,15 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { 
   Search, 
-  Filter, 
-  PlusCircle, 
   ArrowUpDown, 
   FileQuestion, 
-  CheckCircle2, 
-  Clock, 
-  AlertTriangle,
-  BookOpenCheck,
-  BadgePercent
+  Plus, 
+  Filter
 } from 'lucide-react';
 import { PromissoryNote } from '../types';
 import { PromissoryCard } from './PromissoryCard';
@@ -111,144 +106,140 @@ export const AccountsPayableTab: React.FC<AccountsPayableTabProps> = ({
   }, [filteredNotes]);
 
   return (
-    <div className="space-y-6 pb-20 font-['Inter',sans-serif]">
-      {/* Header and Title */}
+    <div className="space-y-6 pb-20 font-['Plus_Jakarta_Sans',sans-serif]">
+      {/* Top Title & Quick Add */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-500/30 text-emerald-400 font-mono text-[11px] mb-1">
-            <BookOpenCheck className="w-3.5 h-3.5" />
-            <span>CARTEIRA FIDUCIÁRIA</span>
-          </div>
-          <h2 className="text-2xl font-black text-white tracking-tight font-['Space_Grotesk',sans-serif]">
-            Livro de Promissórias & Títulos Executivos
+          <h2 className="text-2xl font-extrabold text-white tracking-tight">
+            Contas a Pagar & Promissórias
           </h2>
-          <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
-            Registro cronológico de títulos emitidos, histórico de amortizações parciais e quitações com eficácia executiva.
+          <p className="text-xs sm:text-sm text-[#8B95A5] mt-0.5">
+            Gerencie cada promissória, realize amortizações e acompanhe o histórico de quitação
           </p>
         </div>
 
         <button
           onClick={onOpenNewAccount}
-          className="bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-black text-sm px-4 py-2.5 rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.25)] flex items-center justify-center gap-2 cursor-pointer transition-all self-start sm:self-auto"
+          className="bg-[#11C76F] hover:bg-[#0EAD60] active:scale-95 text-[#0D0E12] font-extrabold text-sm px-4 py-2.5 rounded-xl shadow-[0_2px_12px_rgba(17,199,111,0.2)] flex items-center justify-center gap-1.5 cursor-pointer transition-all self-start sm:self-auto"
         >
-          <PlusCircle className="w-4 h-4" />
-          <span>Emitir Nova Promissória</span>
+          <Plus className="w-4 h-4 stroke-[2.5]" />
+          <span>Nova Promissória</span>
         </button>
       </div>
 
-      {/* Filter and Search Bar */}
-      <div className="bg-[#0e1424] p-4 sm:p-5 rounded-3xl border border-slate-800 shadow-[0_4px_20px_rgba(0,0,0,0.3)] space-y-4">
+      {/* Filter & Search Bar (PicPay Surface) */}
+      <div className="bg-[#161821] p-4 sm:p-5 rounded-3xl border border-[#262936] space-y-4">
         <div className="flex flex-col md:flex-row gap-3">
           {/* Search Input */}
           <div className="relative flex-1">
-            <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-[#8B95A5] absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Pesquisar por credor, código (#NP-...), objeto ou contrato..."
-              className="w-full pl-10 pr-4 py-2.5 bg-[#131b2e] border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all font-medium"
+              placeholder="Buscar por credor, código (#NP-...), descrição..."
+              className="w-full pl-10 pr-4 py-2.5 bg-[#12141A] border border-[#262936] rounded-xl text-sm text-white placeholder-[#5F6876] focus:outline-none focus:border-[#11C76F] focus:ring-1 focus:ring-[#11C76F] transition-all font-medium"
             />
           </div>
 
           {/* Sort By Dropdown */}
           <div className="flex items-center gap-2">
-            <div className="relative min-w-[230px]">
-              <ArrowUpDown className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <div className="relative min-w-[210px]">
+              <ArrowUpDown className="w-4 h-4 text-[#8B95A5] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="w-full pl-9 pr-8 py-2.5 bg-[#131b2e] border border-slate-800 rounded-xl text-xs sm:text-sm text-slate-200 font-mono font-medium focus:outline-none focus:border-emerald-500 cursor-pointer appearance-none"
+                className="w-full pl-9 pr-8 py-2.5 bg-[#12141A] border border-[#262936] rounded-xl text-xs sm:text-sm text-white font-semibold focus:outline-none focus:border-[#11C76F] cursor-pointer appearance-none"
               >
-                <option value="dueDateAsc">Vencimento: Cronológico Iminente</option>
-                <option value="dueDateDesc">Vencimento: Mais Distante</option>
+                <option value="dueDateAsc">Vencimento: mais próximo</option>
+                <option value="dueDateDesc">Vencimento: mais distante</option>
                 <option value="remainingDesc">Maior Saldo Devedor</option>
-                <option value="amountDesc">Maior Valor Nominal</option>
+                <option value="amountDesc">Maior Valor Total</option>
               </select>
             </div>
           </div>
         </div>
 
-        {/* Status Filter Chips */}
+        {/* Status Filter Chips (PicPay Pills) */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 no-scrollbar">
           <button
             onClick={() => setStatusFilter('todos')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all shrink-0 cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${
               statusFilter === 'todos'
-                ? 'bg-emerald-500 text-slate-950 font-black shadow-[0_0_15px_rgba(16,185,129,0.3)]'
-                : 'bg-[#131b2e] text-slate-400 hover:text-slate-200 hover:bg-[#1a253f] border border-slate-800'
+                ? 'bg-[#11C76F] text-[#0D0E12]'
+                : 'bg-[#1E212D] text-[#8B95A5] hover:text-white border border-[#262936]'
             }`}
           >
-            TODAS ({counts.todos})
+            Todas ({counts.todos})
           </button>
 
           <button
             onClick={() => setStatusFilter('pendente')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
+            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
               statusFilter === 'pendente'
-                ? 'bg-blue-500 text-slate-950 font-black shadow-[0_0_15px_rgba(59,130,246,0.3)]'
-                : 'bg-[#131b2e] text-blue-400 hover:bg-blue-950/40 border border-blue-500/20'
+                ? 'bg-[#11C76F] text-[#0D0E12]'
+                : 'bg-[#1E212D] text-[#8B95A5] hover:text-white border border-[#262936]'
             }`}
           >
-            <span>EM ABERTO</span>
-            <span className="font-extrabold text-[10px]">({counts.pendente})</span>
+            <span>Em Aberto</span>
+            <span className="text-[10px] opacity-80">({counts.pendente})</span>
           </button>
 
           <button
             onClick={() => setStatusFilter('parcial')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
+            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
               statusFilter === 'parcial'
-                ? 'bg-amber-500 text-slate-950 font-black shadow-[0_0_15px_rgba(245,158,11,0.3)]'
-                : 'bg-[#131b2e] text-amber-400 hover:bg-amber-950/40 border border-amber-500/20'
+                ? 'bg-[#11C76F] text-[#0D0E12]'
+                : 'bg-[#1E212D] text-[#8B95A5] hover:text-white border border-[#262936]'
             }`}
           >
-            <span>AMORTIZADAS</span>
-            <span className="font-extrabold text-[10px]">({counts.parcial})</span>
+            <span>Parcialmente Pagas</span>
+            <span className="text-[10px] opacity-80">({counts.parcial})</span>
           </button>
 
           <button
             onClick={() => setStatusFilter('vencido')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
+            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
               statusFilter === 'vencido'
-                ? 'bg-rose-500 text-white font-black shadow-[0_0_15px_rgba(244,63,94,0.3)]'
-                : 'bg-[#131b2e] text-rose-400 hover:bg-rose-950/40 border border-rose-500/20'
+                ? 'bg-[#FF3B30] text-white'
+                : 'bg-[#1E212D] text-[#FF453A] border border-[#FF3B30]/20'
             }`}
           >
-            <span>EM MORA</span>
-            <span className="font-extrabold text-[10px]">({counts.vencido})</span>
+            <span>Vencidas</span>
+            <span className="text-[10px] opacity-80">({counts.vencido})</span>
           </button>
 
           <button
             onClick={() => setStatusFilter('quitado')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
+            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
               statusFilter === 'quitado'
-                ? 'bg-emerald-500 text-slate-950 font-black shadow-[0_0_15px_rgba(16,185,129,0.3)]'
-                : 'bg-[#131b2e] text-emerald-400 hover:bg-emerald-950/40 border border-emerald-500/20'
+                ? 'bg-[#11C76F] text-[#0D0E12]'
+                : 'bg-[#1E212D] text-[#11C76F] border border-[#11C76F]/20'
             }`}
           >
-            <span>LIQUIDADAS</span>
-            <span className="font-extrabold text-[10px]">({counts.quitado})</span>
+            <span>Quitadas</span>
+            <span className="text-[10px] opacity-80">({counts.quitado})</span>
           </button>
         </div>
       </div>
 
       {/* Summary Info Bar */}
-      <div className="flex items-center justify-between text-xs text-slate-400 px-2 font-mono">
+      <div className="flex items-center justify-between text-xs text-[#8B95A5] px-2 font-medium">
         <span>
-          Listando <strong className="text-white font-bold">{filteredNotes.length}</strong> {filteredNotes.length === 1 ? 'título executivo' : 'títulos executivos'}
+          Mostrando <strong className="text-white font-bold">{filteredNotes.length}</strong> {filteredNotes.length === 1 ? 'promissória' : 'promissórias'}
         </span>
         <span>
-          Saldo Passivo Filtrado: <strong className="text-emerald-400 font-bold">{formatCurrency(filteredTotalRemaining)}</strong>
+          Saldo restante filtrado: <strong className="text-[#11C76F] font-bold">{formatCurrency(filteredTotalRemaining)}</strong>
         </span>
       </div>
 
       {/* Grid of Promissory Cards */}
       {filteredNotes.length === 0 ? (
-        <div className="bg-[#0e1424] rounded-3xl border border-slate-800 p-12 text-center shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
-          <FileQuestion className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-          <h3 className="text-base font-bold text-slate-200 font-['Space_Grotesk',sans-serif]">Nenhum título localizado</h3>
-          <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
-            Não há registros correspondentes aos critérios de pesquisa ou filtros selecionados.
+        <div className="bg-[#161821] rounded-3xl border border-[#262936] p-12 text-center">
+          <FileQuestion className="w-12 h-12 text-[#5F6876] mx-auto mb-3" />
+          <h3 className="text-base font-bold text-white">Nenhuma promissória encontrada</h3>
+          <p className="text-xs text-[#8B95A5] max-w-sm mx-auto mt-1">
+            Não encontramos nenhum resultado com os filtros selecionados.
           </p>
           <div className="mt-4 flex items-center justify-center gap-3">
             <button
@@ -256,15 +247,15 @@ export const AccountsPayableTab: React.FC<AccountsPayableTabProps> = ({
                 setSearchTerm('');
                 setStatusFilter('todos');
               }}
-              className="px-4 py-2 text-xs font-mono font-bold text-slate-300 bg-slate-800 hover:bg-slate-700 rounded-xl cursor-pointer"
+              className="px-4 py-2 text-xs font-bold text-[#8B95A5] bg-[#1E212D] hover:text-white rounded-xl cursor-pointer"
             >
-              Redefinir Filtros
+              Limpar Filtros
             </button>
             <button
               onClick={onOpenNewAccount}
-              className="px-4 py-2 text-xs font-mono font-bold text-slate-950 bg-emerald-500 hover:bg-emerald-400 rounded-xl cursor-pointer"
+              className="px-4 py-2 text-xs font-bold text-[#0D0E12] bg-[#11C76F] hover:bg-[#0EAD60] rounded-xl cursor-pointer"
             >
-              Emitir Nova Promissória
+              Cadastrar Nova
             </button>
           </div>
         </div>

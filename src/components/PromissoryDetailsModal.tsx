@@ -4,14 +4,14 @@ import {
   Printer, 
   CheckCircle2, 
   Clock, 
-  AlertTriangle, 
+  Calendar, 
   Building2, 
   User, 
-  Calendar, 
   MapPin, 
   FileText,
   ShieldCheck,
-  Scale
+  Plus,
+  CheckCheck
 } from 'lucide-react';
 import { PromissoryNote } from '../types';
 import { formatCurrency, formatDate, calculateNoteFinancials } from '../utils/storage';
@@ -43,154 +43,140 @@ export const PromissoryDetailsModal: React.FC<PromissoryDetailsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in overflow-y-auto font-['Inter',sans-serif]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-in fade-in overflow-y-auto font-['Plus_Jakarta_Sans',sans-serif]">
       <div 
-        className="bg-[#0e1424] rounded-3xl w-full max-w-2xl shadow-[0_25px_70px_rgba(0,0,0,0.9)] border border-slate-800 overflow-hidden flex flex-col my-8"
+        className="bg-[#161821] rounded-3xl w-full max-w-2xl shadow-2xl border border-[#262936] overflow-hidden flex flex-col my-8"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Top Modal Controls Bar */}
-        <div className="bg-[#080c16] text-white p-4 px-6 flex items-center justify-between border-b border-slate-800 print:hidden">
+        {/* Top Controls Bar */}
+        <div className="bg-[#12141A] p-4 px-6 flex items-center justify-between border-b border-[#262936] print:hidden">
           <div className="flex items-center gap-2.5">
-            <Scale className="w-5 h-5 text-emerald-400" />
-            <span className="font-mono font-bold text-xs sm:text-sm tracking-wide text-slate-200">
-              CÉDULA EXECUTIVA #{note.code}
-            </span>
+            <div className="w-8 h-8 rounded-lg bg-[#11C76F]/10 text-[#11C76F] flex items-center justify-center font-bold">
+              <FileText className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="font-bold text-sm text-white">
+                Comprovante da Promissória
+              </span>
+              <span className="text-xs text-[#8B95A5] ml-2 font-mono">
+                {note.code}
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
             <button
               onClick={handlePrint}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#131b2e] hover:bg-[#1a253f] text-emerald-300 border border-emerald-500/30 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer"
-              title="Imprimir Cédula Formal"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1E212D] hover:bg-[#262936] text-white border border-[#262936] rounded-xl text-xs font-bold transition-all cursor-pointer"
+              title="Imprimir documento"
             >
-              <Printer className="w-3.5 h-3.5" />
+              <Printer className="w-3.5 h-3.5 text-[#11C76F]" />
               <span>Imprimir</span>
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+              className="p-1.5 text-[#8B95A5] hover:text-white hover:bg-[#1E212D] rounded-xl transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
-        {/* Physical Promissory Note Visual Certificate (Dark luxury parchment) */}
-        <div className="p-6 sm:p-8 bg-[#090e1b] relative border-b border-dashed border-emerald-500/30 overflow-hidden">
-          {/* Subtle background security pattern */}
-          <div className="absolute inset-0 bg-[radial-gradient(#10b9810d_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none" />
-
+        {/* Certificate / Digital Promissory Note Body */}
+        <div className="p-6 sm:p-8 bg-[#12141A] border-b border-[#262936] relative overflow-hidden">
           {/* Stamp watermark */}
           {isQuitado ? (
-            <div className="absolute right-6 top-10 border-4 border-emerald-500 text-emerald-400 font-mono font-black text-xl sm:text-2xl uppercase tracking-widest px-6 py-2 rounded-2xl rotate-[-12deg] select-none shadow-[0_0_25px_rgba(16,185,129,0.4)] bg-[#071317]/90 border-dashed">
-              ★ QUITADO E RESGATADO ★
+            <div className="absolute right-6 top-8 border-2 border-[#11C76F] text-[#11C76F] font-extrabold text-sm sm:text-base uppercase tracking-wider px-4 py-1.5 rounded-xl rotate-[-6deg] select-none bg-[#11C76F]/10 border-dashed">
+              ✓ PROMISSÓRIA QUITADA
             </div>
           ) : (
-            <div className="absolute right-6 top-10 border-3 border-amber-500/80 text-amber-400 font-mono font-black text-lg sm:text-xl uppercase tracking-widest px-4 py-1.5 rounded-xl rotate-[-8deg] select-none bg-[#131109]/90 border-dashed">
-              {computedStatus === 'vencido' ? 'EM MORA / PROTESTÁVEL' : 'TÍTULO EXIGÍVEL'}
+            <div className="absolute right-6 top-8 border-2 border-[#FF9500] text-[#FF9500] font-extrabold text-xs sm:text-sm uppercase tracking-wider px-3 py-1 rounded-xl rotate-[-4deg] select-none bg-[#FF9500]/10 border-dashed">
+              EM COBRANÇA
             </div>
           )}
 
-          {/* Formal Promissory Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-emerald-500/40 pb-4 mb-5 gap-2 relative z-10">
-            <div>
-              <span className="text-[10px] font-mono font-bold tracking-widest text-emerald-400 uppercase flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                DECRETO Nº 2.044/1908 • LEI UNIFORME DE GENEBRA
-              </span>
-              <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white font-['Newsreader',serif] italic mt-0.5">
-                Nota Promissória
-              </h2>
-            </div>
-            <div className="text-left sm:text-right">
-              <div className="text-xs font-mono font-bold text-slate-400">
-                Nº: <span className="text-emerald-400">{note.code}</span>
-              </div>
-              <div className="text-lg font-mono font-black text-white">
-                {formatCurrency(note.totalAmount)}
-              </div>
+          {/* Promissory Title Header */}
+          <div className="border-b border-[#262936] pb-4 mb-5">
+            <span className="text-[11px] font-bold text-[#11C76F] uppercase tracking-wider block mb-1">
+              Título de Crédito • Nota Promissória
+            </span>
+            <h2 className="text-xl sm:text-2xl font-black text-white">
+              {note.title}
+            </h2>
+            <div className="flex items-center gap-4 mt-2 text-xs text-[#8B95A5]">
+              <span>Número: <strong className="text-white font-mono">{note.code}</strong></span>
+              <span>•</span>
+              <span>Valor Nominal: <strong className="text-[#11C76F] font-bold">{formatCurrency(note.totalAmount)}</strong></span>
             </div>
           </div>
 
-          {/* Formal Legal text */}
-          <div className="text-slate-200 text-sm sm:text-base leading-relaxed space-y-4 font-['Newsreader',serif] relative z-10">
-            <p className="indent-6">
-              No dia <strong className="font-mono text-emerald-300 font-bold">{formatDate(note.dueDate)}</strong>, pagarei(emos) por esta única via de
-              <strong className="text-white"> NOTA PROMISSÓRIA</strong> à ordem de <strong className="text-white underline decoration-emerald-500/60">{note.creditor}</strong>
-              {note.creditorDoc && <span className="font-mono text-xs text-slate-400"> (CNPJ/CPF: {note.creditorDoc})</span>}, ou à sua ordem, a
-              quantia líquida, certa e exigível de <strong className="font-mono text-emerald-400 font-bold">{formatCurrency(note.totalAmount)}</strong> em moeda corrente nacional.
+          {/* Legal Promissory Text */}
+          <div className="text-slate-300 text-sm leading-relaxed space-y-3 bg-[#161821] p-5 rounded-2xl border border-[#262936]">
+            <p>
+              No dia <strong className="text-white underline decoration-[#11C76F]">{formatDate(note.dueDate)}</strong>, pagarei(emos) por esta única via de
+              <strong className="text-white"> NOTA PROMISSÓRIA</strong> a <strong className="text-white">{note.creditor}</strong>
+              {note.creditorDoc && <span className="text-xs text-[#8B95A5]"> (CPF/CNPJ: {note.creditorDoc})</span>}, ou à sua ordem, a
+              quantia de <strong className="text-[#11C76F] font-bold">{formatCurrency(note.totalAmount)}</strong> em moeda corrente nacional.
             </p>
-            <p className="text-xs text-slate-400 font-sans">
-              Pagável e exigível na praça e comarca de: <strong className="text-slate-200">{note.place || 'Comarca de São Paulo - SP'}</strong>.
+            <p className="text-xs text-[#8B95A5]">
+              Praça de Pagamento: <strong className="text-white">{note.place || 'São Paulo - SP'}</strong>.
             </p>
             {note.notes && (
-              <p className="text-xs text-slate-400 font-mono bg-[#111827]/80 p-3 rounded-xl border border-slate-800">
-                Averbações contratuais: {note.notes}
+              <p className="text-xs text-[#8B95A5] pt-1 border-t border-[#262936]">
+                Observações: {note.notes}
               </p>
             )}
           </div>
 
-          {/* Signatures block */}
-          <div className="mt-8 pt-6 border-t border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-6 text-xs text-slate-300 relative z-10 font-mono">
+          {/* Signatures / Parties */}
+          <div className="mt-6 pt-5 border-t border-[#262936] grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-[#8B95A5]">
             <div>
-              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                Emitente / Devedor Solidário:
-              </div>
-              <div className="font-bold text-white mt-0.5">{note.debtor}</div>
-              {note.debtorDoc && <div className="text-[11px] text-slate-400">{note.debtorDoc}</div>}
-              <div className="mt-5 pt-1 border-t border-slate-700 w-48 text-[10px] text-slate-500">
-                Assinatura do Emitente / Responsável
-              </div>
+              <span className="block text-[10px] uppercase font-bold text-[#5F6876]">Emitente / Devedor:</span>
+              <span className="font-bold text-white block mt-0.5">{note.debtor}</span>
+              {note.debtorDoc && <span className="text-[11px] text-[#8B95A5]">{note.debtorDoc}</span>}
             </div>
 
             <div>
-              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                Data de Emissão Cambial:
-              </div>
-              <div className="font-bold text-white mt-0.5">{formatDate(note.issueDate)}</div>
-              <div className="mt-5 pt-1 border-t border-slate-700 w-48 text-[10px] text-slate-500">
-                Praça de Compensação Fiduciária
-              </div>
+              <span className="block text-[10px] uppercase font-bold text-[#5F6876]">Data de Emissão:</span>
+              <span className="font-bold text-white block mt-0.5">{formatDate(note.issueDate)}</span>
             </div>
           </div>
         </div>
 
-        {/* Amortization / Payments Ledger */}
-        <div className="p-6 bg-[#0e1424] space-y-4 font-['Inter',sans-serif]">
+        {/* Amortization Ledger */}
+        <div className="p-6 bg-[#161821] space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-bold text-sm text-slate-100 flex items-center gap-2 font-['Space_Grotesk',sans-serif]">
-              <Clock className="w-4 h-4 text-emerald-400" />
-              <span>Livro de Amortizações & Protocolos Bancários</span>
+            <h3 className="font-bold text-sm text-white flex items-center gap-2">
+              <Clock className="w-4 h-4 text-[#11C76F]" />
+              <span>Histórico de Amortizações & Pagamentos</span>
             </h3>
-            <span className="text-xs font-mono text-slate-400">
-              {note.payments.length} {note.payments.length === 1 ? 'lançamento' : 'lançamentos'}
+            <span className="text-xs text-[#8B95A5]">
+              {note.payments.length} {note.payments.length === 1 ? 'registro' : 'registros'}
             </span>
           </div>
 
           {note.payments.length === 0 ? (
-            <div className="p-6 text-center bg-[#131b2e] rounded-2xl border border-slate-800 text-slate-400 text-xs font-mono">
-              Nenhuma amortização averbada até a presente data. Título integralmente em aberto.
+            <div className="p-6 text-center bg-[#12141A] rounded-2xl border border-[#262936] text-[#8B95A5] text-xs">
+              Nenhum pagamento registrado nesta nota até o momento.
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border border-slate-800 rounded-xl overflow-hidden font-mono">
-                <thead className="bg-[#12192b] text-slate-400 font-bold uppercase text-[10px]">
+              <table className="w-full text-left text-xs border border-[#262936] rounded-xl overflow-hidden">
+                <thead className="bg-[#12141A] text-[#8B95A5] font-bold uppercase text-[10px]">
                   <tr>
                     <th className="p-3">Data</th>
-                    <th className="p-3">Instrumento</th>
-                    <th className="p-3">Protocolo / Recibo</th>
-                    <th className="p-3">Histórico</th>
-                    <th className="p-3 text-right">Amortizado</th>
+                    <th className="p-3">Forma</th>
+                    <th className="p-3">Observação / Recibo</th>
+                    <th className="p-3 text-right">Valor Pago</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/80 bg-[#0a0f1c]/70">
+                <tbody className="divide-y divide-[#262936] bg-[#12141A]/50">
                   {note.payments.map((p, idx) => (
-                    <tr key={p.id || idx} className="hover:bg-[#12192b]/60">
-                      <td className="p-3 text-slate-200">{formatDate(p.date)}</td>
-                      <td className="p-3 font-semibold uppercase text-emerald-400">{p.method}</td>
-                      <td className="p-3 text-slate-400">{p.authCode || '-'}</td>
-                      <td className="p-3 text-slate-300">{p.note || '-'}</td>
-                      <td className="p-3 text-right font-black text-emerald-400">
+                    <tr key={p.id || idx} className="hover:bg-[#1E212D]/50">
+                      <td className="p-3 font-medium text-white">{formatDate(p.date)}</td>
+                      <td className="p-3 font-bold uppercase text-[#11C76F]">{p.method}</td>
+                      <td className="p-3 text-[#8B95A5]">{p.note || p.authCode || '-'}</td>
+                      <td className="p-3 text-right font-bold text-[#11C76F]">
                         {formatCurrency(p.amount)}
                       </td>
                     </tr>
@@ -200,32 +186,32 @@ export const PromissoryDetailsModal: React.FC<PromissoryDetailsModalProps> = ({
             </div>
           )}
 
-          {/* Balance Breakdown */}
-          <div className="bg-[#12192b] p-4 rounded-2xl border border-slate-800 flex flex-wrap items-center justify-between gap-4 font-mono">
+          {/* Balance breakdown */}
+          <div className="bg-[#12141A] p-4 rounded-2xl border border-[#262936] flex flex-wrap items-center justify-between gap-4">
             <div>
-              <span className="text-[11px] text-slate-400 font-medium block">Total Amortizado</span>
-              <span className="text-base font-black text-emerald-400">{formatCurrency(paidAmount)}</span>
+              <span className="text-xs text-[#8B95A5] font-medium block">Total Já Pago</span>
+              <span className="text-base font-extrabold text-[#11C76F]">{formatCurrency(paidAmount)}</span>
             </div>
 
             <div>
-              <span className="text-[11px] text-slate-400 font-medium block">Passivo Remanescente</span>
-              <span className={`text-base font-black ${isQuitado ? 'text-slate-500 line-through' : 'text-white'}`}>
+              <span className="text-xs text-[#8B95A5] font-medium block">Saldo Restante</span>
+              <span className={`text-base font-extrabold ${isQuitado ? 'text-[#5F6876] line-through' : 'text-white'}`}>
                 {formatCurrency(remainingAmount)}
               </span>
             </div>
 
             <div>
-              <span className="text-[11px] text-slate-400 font-medium block">Índice Resgatado</span>
-              <span className="text-base font-black text-emerald-400">{progressPercent}%</span>
+              <span className="text-xs text-[#8B95A5] font-medium block">Percentual Quitado</span>
+              <span className="text-base font-extrabold text-[#11C76F]">{progressPercent}%</span>
             </div>
           </div>
         </div>
 
         {/* Modal Footer */}
-        <div className="p-4 px-6 bg-[#080c16] border-t border-slate-800 flex items-center justify-between print:hidden font-mono">
+        <div className="p-4 px-6 bg-[#12141A] border-t border-[#262936] flex items-center justify-between print:hidden">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+            className="px-4 py-2 text-xs font-bold text-[#8B95A5] hover:text-white hover:bg-[#1E212D] rounded-xl transition-colors cursor-pointer"
           >
             Fechar
           </button>
@@ -237,18 +223,18 @@ export const PromissoryDetailsModal: React.FC<PromissoryDetailsModalProps> = ({
                   onClose();
                   onOpenPaymentModal(note);
                 }}
-                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.3)] transition-colors cursor-pointer"
+                className="px-4 py-2 bg-[#11C76F] hover:bg-[#0EAD60] text-[#0D0E12] text-xs font-extrabold rounded-xl shadow-xs transition-colors cursor-pointer"
               >
-                + Amortizar Título
+                + Adicionar Pago
               </button>
               <button
                 onClick={() => {
                   onClose();
                   onQuickSettle(note);
                 }}
-                className="px-4 py-2 bg-[#131b2e] hover:bg-[#1a253f] text-emerald-300 border border-emerald-500/30 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                className="px-4 py-2 bg-[#1E212D] hover:bg-[#262936] text-[#11C76F] border border-[#11C76F]/20 text-xs font-bold rounded-xl transition-colors cursor-pointer"
               >
-                Liquidar Integralmente
+                Quitar Promissória
               </button>
             </div>
           )}

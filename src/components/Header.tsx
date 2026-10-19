@@ -1,12 +1,12 @@
 import React from 'react';
 import { 
-  FileSpreadsheet, 
   LayoutDashboard, 
-  BookOpenCheck, 
-  PlusCircle, 
+  FileText, 
+  Plus, 
   LogOut, 
-  ShieldCheck, 
-  AlertTriangle 
+  Bell,
+  User,
+  ChevronDown
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -27,90 +27,90 @@ export const Header: React.FC<HeaderProps> = ({
   overdueCount,
 }) => {
   return (
-    <header className="sticky top-0 z-30 bg-[#090d16]/95 backdrop-blur-xl border-b border-slate-800/90 shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
+    <header className="sticky top-0 z-30 bg-[#0D0E12]/95 backdrop-blur-md border-b border-[#262936]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-18">
-          {/* Logo & Brand */}
-          <div className="flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-600 flex items-center justify-center text-slate-950 shadow-[0_0_15px_rgba(16,185,129,0.3)]">
-              <FileSpreadsheet className="w-5 h-5 font-black text-slate-950" />
+        <div className="flex items-center justify-between h-17">
+          {/* Logo Brand PicPay Style */}
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-[#11C76F] flex items-center justify-center shadow-[0_2px_12px_rgba(17,199,111,0.25)]">
+              <span className="text-[#0D0E12] font-black text-lg tracking-tighter">P</span>
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-black tracking-tight text-white font-['Space_Grotesk',sans-serif]">
-                  Promissória<span className="text-emerald-400">Pay</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-base font-extrabold tracking-tight text-white">
+                  Promissória<span className="text-[#11C76F]">Pay</span>
                 </span>
-                <span className="text-[10px] font-mono uppercase tracking-widest text-emerald-400 bg-emerald-950/80 border border-emerald-500/30 px-1.5 py-0.5 rounded">
-                  TESOURARIA
+                <span className="text-[10px] font-bold text-[#11C76F] bg-[#11C76F]/10 px-2 py-0.5 rounded-full border border-[#11C76F]/20">
+                  Pro
                 </span>
               </div>
-              <p className="text-[11px] font-medium text-slate-400 -mt-0.5 hidden sm:block">
-                Controle de Obrigações Financeiras & Amortizações
-              </p>
             </div>
           </div>
 
-          {/* Navigation Tabs */}
-          <nav className="flex items-center gap-1 sm:gap-1.5 bg-[#0e1424] p-1.5 rounded-2xl border border-slate-800/80">
+          {/* Navigation Tabs (PicPay Segment Bar) */}
+          <nav className="flex items-center bg-[#161821] p-1 rounded-2xl border border-[#262936]">
             <button
               onClick={() => onTabChange('inicio')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                 activeTab === 'inicio'
-                  ? 'bg-emerald-500 text-slate-950 shadow-[0_0_15px_rgba(16,185,129,0.3)] font-black'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                  ? 'bg-[#11C76F] text-[#0D0E12] shadow-sm font-extrabold'
+                  : 'text-[#8B95A5] hover:text-white hover:bg-[#1E212D]'
               }`}
             >
               <LayoutDashboard className="w-4 h-4" />
-              <span>Painel Executivo</span>
+              <span>Início</span>
             </button>
 
             <button
               onClick={() => onTabChange('a-pagar')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer relative ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer relative ${
                 activeTab === 'a-pagar'
-                  ? 'bg-emerald-500 text-slate-950 shadow-[0_0_15px_rgba(16,185,129,0.3)] font-black'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                  ? 'bg-[#11C76F] text-[#0D0E12] shadow-sm font-extrabold'
+                  : 'text-[#8B95A5] hover:text-white hover:bg-[#1E212D]'
               }`}
             >
-              <BookOpenCheck className="w-4 h-4" />
-              <span>Livro de Promissórias</span>
+              <FileText className="w-4 h-4" />
+              <span>A Pagar</span>
               {(pendingCount > 0 || overdueCount > 0) && (
                 <span
-                  className={`ml-1 px-1.5 py-0.5 text-[10px] font-mono font-black rounded-md ${
+                  className={`ml-1 px-1.5 py-0.2 text-[10px] font-bold rounded-full ${
                     activeTab === 'a-pagar'
-                      ? 'bg-slate-950 text-emerald-300'
+                      ? 'bg-[#0D0E12] text-[#11C76F]'
                       : overdueCount > 0
-                      ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                      : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                      ? 'bg-[#FF3B30] text-white'
+                      : 'bg-[#11C76F]/20 text-[#11C76F]'
                   }`}
                 >
-                  {overdueCount > 0 ? `${overdueCount} em mora` : pendingCount}
+                  {overdueCount > 0 ? `${overdueCount} venc.` : pendingCount}
                 </span>
               )}
             </button>
           </nav>
 
-          {/* Action Button & Logout */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          {/* Right Action buttons */}
+          <div className="flex items-center gap-3">
             <button
               onClick={onOpenNewAccount}
-              className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs sm:text-sm px-4 py-2.5 rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.25)] flex items-center gap-2 transition-all active:scale-[0.98] cursor-pointer"
+              className="bg-[#11C76F] hover:bg-[#0EAD60] text-[#0D0E12] font-extrabold text-xs sm:text-sm px-4 py-2.5 rounded-xl shadow-[0_2px_12px_rgba(17,199,111,0.2)] flex items-center gap-1.5 transition-all active:scale-[0.98] cursor-pointer"
             >
-              <PlusCircle className="w-4 h-4" />
-              <span className="hidden sm:inline">Emitir Título</span>
-              <span className="sm:hidden">+ Título</span>
+              <Plus className="w-4 h-4 stroke-[2.5]" />
+              <span className="hidden sm:inline">Nova Promissória</span>
+              <span className="sm:hidden">Nova</span>
             </button>
 
-            <div className="h-6 w-[1px] bg-slate-800 mx-1 hidden sm:block" />
-
-            <button
-              onClick={onLogout}
-              title="Encerrar Sessão de Tesouraria"
-              className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 rounded-xl transition-all cursor-pointer border border-transparent hover:border-rose-900/40"
-            >
-              <LogOut className="w-4 h-4" />
-              <span className="hidden md:inline">Encerrar</span>
-            </button>
+            {/* User Profile Pill & Logout */}
+            <div className="flex items-center gap-2 pl-2 border-l border-[#262936]">
+              <div className="w-8 h-8 rounded-full bg-[#1E212D] border border-[#262936] flex items-center justify-center text-xs font-bold text-white">
+                AD
+              </div>
+              <button
+                onClick={onLogout}
+                title="Sair da Conta"
+                className="p-2 text-[#8B95A5] hover:text-[#FF453A] hover:bg-[#241318] rounded-xl transition-colors cursor-pointer"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       </div>

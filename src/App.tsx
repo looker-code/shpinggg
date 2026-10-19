@@ -18,13 +18,13 @@ import { PromissoryDetailsModal } from './components/PromissoryDetailsModal';
 export default function App() {
   // Estado de autenticação persistido
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return localStorage.getItem('promissory_auth_v2') === 'true';
+    return localStorage.getItem('promissory_auth_picpay') === 'true';
   });
 
   // Aba ativa
   const [activeTab, setActiveTab] = useState<'inicio' | 'a-pagar'>('inicio');
 
-  // Base corporativa de notas promissórias
+  // Base de promissórias
   const [notes, setNotes] = useState<PromissoryNote[]>(() => {
     return loadPromissoryNotes();
   });
@@ -34,7 +34,7 @@ export default function App() {
   const [selectedNoteForPayment, setSelectedNoteForPayment] = useState<PromissoryNote | null>(null);
   const [selectedNoteForDetails, setSelectedNoteForDetails] = useState<PromissoryNote | null>(null);
 
-  // Notificações flutuantes (Toast)
+  // Notificações flutuantes (Toast PicPay Style)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'warn' } | null>(null);
 
   useEffect(() => {
@@ -45,22 +45,22 @@ export default function App() {
     setToast({ message, type });
     setTimeout(() => {
       setToast(null);
-    }, 4000);
+    }, 3800);
   };
 
   const handleLogin = () => {
-    localStorage.setItem('promissory_auth_v2', 'true');
+    localStorage.setItem('promissory_auth_picpay', 'true');
     setIsAuthenticated(true);
-    showToast('Autenticação corporativa confirmada. Livro razão aberto.');
+    showToast('Acesso autorizado! Bem-vindo ao PromissóriaPay.');
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('promissory_auth_v2');
+    localStorage.removeItem('promissory_auth_picpay');
     setIsAuthenticated(false);
-    showToast('Sessão fiduciária finalizada com segurança.', 'info');
+    showToast('Sessão finalizada com sucesso.', 'info');
   };
 
-  // Gerador de código sequencial fiduciário (ex: NP-2026/093)
+  // Gerador de código sequencial
   const getNextCodeSuggestion = () => {
     const currentYear = new Date().getFullYear();
     const existingNumbers = notes.map((n) => {
@@ -85,7 +85,7 @@ export default function App() {
     };
 
     setNotes((prev) => [newNote, ...prev]);
-    showToast(`Nota Promissória ${newNote.code} emitida e registrada com eficácia executiva!`);
+    showToast(`Promissória ${newNote.code} cadastrada com sucesso!`);
   };
 
   // Amortização parcial ou total
@@ -114,15 +114,15 @@ export default function App() {
         if (isSettled) {
           try {
             confetti({
-              particleCount: 110,
-              spread: 80,
+              particleCount: 90,
+              spread: 75,
               origin: { y: 0.6 },
-              colors: ['#10b981', '#34d399', '#059669', '#ffffff', '#fbbf24'],
+              colors: ['#11C76F', '#0FA85D', '#E7FAF0', '#FFFFFF'],
             });
           } catch {}
-          showToast(`Cédula ${note.code} foi totalmente LIQUIDADA e RESGATADA!`);
+          showToast(`Promissória ${note.code} foi totalmente QUITADA! Parabéns!`);
         } else {
-          showToast(`Amortização de R$ ${paymentData.amount.toFixed(2)} averbada no livro.`);
+          showToast(`Pagamento de R$ ${paymentData.amount.toFixed(2)} registrado com sucesso!`);
         }
 
         return {
@@ -134,20 +134,20 @@ export default function App() {
     );
   };
 
-  // Liquidação integral instantânea
+  // Liquidação integral imediata
   const handleQuickSettle = (note: PromissoryNote) => {
     const { remainingAmount } = calculateNoteFinancials(note);
     if (remainingAmount <= 0) {
-      showToast('Este título já se encontra integralmente liquidado.', 'info');
+      showToast('Esta promissória já está quitada.', 'info');
       return;
     }
 
     if (
       !window.confirm(
-        `Confirma a liquidação integral do passivo de ${new Intl.NumberFormat('pt-BR', {
+        `Confirma a quitação integral do saldo restante de ${new Intl.NumberFormat('pt-BR', {
           style: 'currency',
           currency: 'BRL',
-        }).format(remainingAmount)} referente à Nota Promissória ${note.code}?`
+        }).format(remainingAmount)} da promissória ${note.code}?`
       )
     ) {
       return;
@@ -159,8 +159,8 @@ export default function App() {
       amount: remainingAmount,
       date: todayStr,
       method: 'pix' as PaymentMethod,
-      note: 'Liquidação integral para resgate definitivo do título',
-      authCode: `LIQ-INTEGRAL-${Date.now().toString().slice(-6)}`,
+      note: 'Quitação total do saldo restante',
+      authCode: `LIQ-${Date.now().toString().slice(-6)}`,
       registeredAt: new Date().toISOString(),
     };
 
@@ -177,14 +177,14 @@ export default function App() {
 
     try {
       confetti({
-        particleCount: 120,
-        spread: 90,
+        particleCount: 100,
+        spread: 80,
         origin: { y: 0.6 },
-        colors: ['#10b981', '#34d399', '#059669', '#ffffff', '#fbbf24'],
+        colors: ['#11C76F', '#0FA85D', '#E7FAF0', '#FFFFFF'],
       });
     } catch {}
 
-    showToast(`Nota Promissória ${note.code} liquidada com eficácia plena!`);
+    showToast(`Promissória ${note.code} foi quitada com sucesso!`);
   };
 
   // Exclusão de nota
@@ -192,9 +192,9 @@ export default function App() {
     const target = notes.find((n) => n.id === id);
     if (!target) return;
 
-    if (window.confirm(`Confirma a baixa e exclusão do registro do título ${target.code} (${target.title})?`)) {
+    if (window.confirm(`Tem certeza que deseja excluir a promissória ${target.code} (${target.title})?`)) {
       setNotes((prev) => prev.filter((n) => n.id !== id));
-      showToast(`Título ${target.code} cancelado no livro.`);
+      showToast(`Promissória ${target.code} excluída.`);
     }
   };
 
@@ -213,17 +213,18 @@ export default function App() {
   const summary = calculateDashboardSummary(notes);
 
   return (
-    <div className="min-h-screen bg-[#070a11] text-slate-100 font-['Inter',sans-serif] flex flex-col selection:bg-emerald-500 selection:text-slate-950">
-      {/* Toast Notification */}
+    <div className="min-h-screen bg-[#0D0E12] text-white font-['Plus_Jakarta_Sans',sans-serif] flex flex-col selection:bg-[#11C76F] selection:text-[#0D0E12]">
+      {/* Toast Notification (PicPay Dark Style) */}
       {toast && (
-        <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-5 fade-in duration-300 font-mono">
-          <div className={`px-4 py-3 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.8)] text-white text-xs font-bold flex items-center gap-2 border ${
+        <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-5 fade-in duration-200">
+          <div className={`px-4 py-3 rounded-2xl shadow-2xl text-xs font-bold flex items-center gap-2.5 border ${
             toast.type === 'success'
-              ? 'bg-[#06241a] border-emerald-500/50 text-emerald-300 shadow-emerald-500/10'
+              ? 'bg-[#161821] border-[#11C76F]/40 text-[#11C76F]'
               : toast.type === 'warn'
-              ? 'bg-[#291708] border-amber-500/50 text-amber-300'
-              : 'bg-[#0f172a] border-slate-700 text-slate-200'
+              ? 'bg-[#161821] border-[#FF9500]/40 text-[#FF9500]'
+              : 'bg-[#161821] border-[#262936] text-white'
           }`}>
+            <span className="w-2 h-2 rounded-full bg-[#11C76F]" />
             <span>{toast.message}</span>
           </div>
         </div>

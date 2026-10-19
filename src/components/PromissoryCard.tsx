@@ -1,6 +1,5 @@
 import React from 'react';
 import { 
-  FileCheck2, 
   Clock, 
   AlertTriangle, 
   CheckCircle2, 
@@ -10,9 +9,7 @@ import {
   Plus, 
   CheckCheck, 
   FileText, 
-  Trash2, 
-  FileSpreadsheet,
-  ShieldCheck
+  Trash2 
 } from 'lucide-react';
 import { PromissoryNote } from '../types';
 import { formatCurrency, formatDate, calculateNoteFinancials } from '../utils/storage';
@@ -41,106 +38,106 @@ export const PromissoryCard: React.FC<PromissoryCardProps> = ({
     switch (computedStatus) {
       case 'quitado':
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono font-black uppercase tracking-wider bg-emerald-950/90 text-emerald-300 border border-emerald-500/50 shadow-[0_0_12px_rgba(16,185,129,0.3)]">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-            Liquidado
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase bg-[#11C76F]/10 text-[#11C76F] border border-[#11C76F]/20">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            Quitado
           </span>
         );
       case 'vencido':
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono font-black uppercase tracking-wider bg-rose-950/90 text-rose-300 border border-rose-500/50 shadow-[0_0_12px_rgba(244,63,94,0.3)] animate-pulse">
-            <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
-            Em Mora
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase bg-[#FF3B30]/10 text-[#FF453A] border border-[#FF3B30]/20">
+            <AlertTriangle className="w-3.5 h-3.5" />
+            Vencida
           </span>
         );
       case 'parcial':
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono font-black uppercase tracking-wider bg-amber-950/80 text-amber-300 border border-amber-500/40">
-            <Clock className="w-3.5 h-3.5 text-amber-400" />
-            Amortizado ({progressPercent}%)
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase bg-[#FF9500]/10 text-[#FF9500] border border-[#FF9500]/20">
+            <Clock className="w-3.5 h-3.5" />
+            Parcial ({progressPercent}%)
           </span>
         );
       case 'pendente':
       default:
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono font-black uppercase tracking-wider bg-slate-900 text-slate-300 border border-slate-700">
-            <Clock className="w-3.5 h-3.5 text-slate-400" />
-            Exigível
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase bg-[#1E212D] text-[#8B95A5] border border-[#262936]">
+            <Clock className="w-3.5 h-3.5 text-[#8B95A5]" />
+            Em Aberto
           </span>
         );
     }
   };
 
   return (
-    <div className={`relative bg-[#0e1424] rounded-3xl border transition-all duration-300 hover:shadow-[0_10px_30px_rgba(0,0,0,0.5)] flex flex-col justify-between overflow-hidden font-['Inter',sans-serif] ${
+    <div className={`relative bg-[#161821] rounded-3xl border transition-all duration-200 hover:border-[#11C76F]/40 flex flex-col justify-between overflow-hidden font-['Plus_Jakarta_Sans',sans-serif] ${
       isFullyPaid 
-        ? 'border-emerald-500/40 shadow-[0_0_20px_rgba(16,185,129,0.08)]' 
+        ? 'border-[#11C76F]/30 bg-[#161821]' 
         : isOverdue 
-        ? 'border-rose-500/40 shadow-[0_0_20px_rgba(244,63,94,0.08)]' 
-        : 'border-slate-800 hover:border-slate-700'
+        ? 'border-[#FF3B30]/30' 
+        : 'border-[#262936]'
     }`}>
       {/* Top Card Section */}
-      <div className="p-5 sm:p-6 pb-4 border-b border-slate-800/80">
+      <div className="p-5 sm:p-6 pb-4 border-b border-[#262936]">
         <div className="flex items-center justify-between gap-3 mb-2.5">
           <div className="flex items-center gap-2">
-            <span className="font-mono text-xs font-black bg-[#131b2e] text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-lg tracking-wider">
+            <span className="font-mono text-xs font-bold bg-[#1E212D] text-[#11C76F] border border-[#262936] px-2 py-0.5 rounded-lg">
               {note.code}
             </span>
-            <span className="text-[11px] font-mono text-slate-400">
-              Emissão: {formatDate(note.issueDate)}
+            <span className="text-[11px] text-[#8B95A5]">
+              {formatDate(note.issueDate)}
             </span>
           </div>
           {renderStatusBadge()}
         </div>
 
-        <h3 className="font-bold text-base sm:text-lg text-white font-['Space_Grotesk',sans-serif] leading-snug tracking-tight line-clamp-1">
+        <h3 className="font-bold text-base text-white leading-snug tracking-tight line-clamp-1">
           {note.title}
         </h3>
 
-        <div className="mt-3 space-y-1.5 text-xs text-slate-400">
+        <div className="mt-2.5 space-y-1 text-xs text-[#8B95A5]">
           <div className="flex items-center gap-1.5 truncate">
-            <Building2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-            <span className="text-slate-400">Beneficiário:</span>
-            <span className="font-semibold text-slate-200 truncate">{note.creditor}</span>
+            <Building2 className="w-3.5 h-3.5 text-[#11C76F] shrink-0" />
+            <span>Favorecido:</span>
+            <span className="font-semibold text-white truncate">{note.creditor}</span>
           </div>
           <div className="flex items-center gap-1.5 truncate">
-            <User className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-            <span className="text-slate-400">Emitente:</span>
+            <User className="w-3.5 h-3.5 text-[#8B95A5] shrink-0" />
+            <span>Devedor:</span>
             <span className="text-slate-300 truncate">{note.debtor}</span>
           </div>
         </div>
       </div>
 
-      {/* Financial Figures Section */}
-      <div className="p-5 sm:p-6 py-4 bg-[#0a0f1c]/90 flex-1 flex flex-col justify-center">
-        <div className="grid grid-cols-3 gap-2 text-center pb-3 border-b border-slate-800/80">
+      {/* Financial Figures Section (PicPay Clean Numbers) */}
+      <div className="p-5 sm:p-6 py-4 bg-[#12141A] flex-1 flex flex-col justify-center">
+        <div className="grid grid-cols-3 gap-2 text-center pb-3 border-b border-[#262936]">
           <div>
-            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">
-              Valor Nominal
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#8B95A5] block">
+              Original
             </span>
-            <span className="text-xs sm:text-sm font-mono font-semibold text-slate-300">
+            <span className="text-xs sm:text-sm font-semibold text-white">
               {formatCurrency(note.totalAmount)}
             </span>
           </div>
 
           <div>
-            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-400 block">
-              Amortizado
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#11C76F] block">
+              Já Pago
             </span>
-            <span className="text-xs sm:text-sm font-mono font-bold text-emerald-400">
+            <span className="text-xs sm:text-sm font-bold text-[#11C76F]">
               {formatCurrency(paidAmount)}
             </span>
           </div>
 
           <div>
-            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">
-              Saldo Devedor
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#8B95A5] block">
+              Saldo
             </span>
-            <span className={`text-xs sm:text-sm font-mono font-black ${
+            <span className={`text-xs sm:text-sm font-extrabold ${
               isFullyPaid 
-                ? 'text-slate-500 line-through' 
+                ? 'text-[#5F6876] line-through' 
                 : isOverdue 
-                ? 'text-rose-400' 
+                ? 'text-[#FF453A]' 
                 : 'text-white'
             }`}>
               {formatCurrency(remainingAmount)}
@@ -150,63 +147,63 @@ export const PromissoryCard: React.FC<PromissoryCardProps> = ({
 
         {/* Progress Bar */}
         <div className="mt-3">
-          <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 mb-1">
-            <span>Amortização Fiduciária</span>
-            <span className={isFullyPaid ? 'text-emerald-400 font-bold' : 'text-slate-300 font-bold'}>
+          <div className="flex items-center justify-between text-[11px] font-semibold text-[#8B95A5] mb-1">
+            <span>Amortização</span>
+            <span className={isFullyPaid ? 'text-[#11C76F] font-bold' : 'text-white font-bold'}>
               {progressPercent}%
             </span>
           </div>
-          <div className="w-full bg-[#131b2e] h-2 rounded-full overflow-hidden border border-slate-800">
+          <div className="w-full bg-[#1E212D] h-2 rounded-full overflow-hidden border border-[#262936]">
             <div 
               className={`h-full transition-all duration-500 rounded-full ${
-                isFullyPaid ? 'bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.8)]' : 'bg-gradient-to-r from-emerald-500 to-teal-400'
+                isFullyPaid ? 'bg-[#11C76F]' : 'bg-[#11C76F]'
               }`}
               style={{ width: `${progressPercent}%` }}
             />
           </div>
         </div>
 
-        {/* Due Date & Place */}
+        {/* Due Date & Payments count */}
         <div className="mt-3 flex items-center justify-between text-xs pt-1">
-          <div className="flex items-center gap-1.5 text-slate-400 font-mono">
-            <Calendar className="w-3.5 h-3.5 text-slate-500" />
+          <div className="flex items-center gap-1.5 text-[#8B95A5]">
+            <Calendar className="w-3.5 h-3.5 text-[#8B95A5]" />
             <span>Vencimento:</span>
-            <span className={`font-bold ${isOverdue ? 'text-rose-400' : 'text-slate-200'}`}>
+            <span className={`font-semibold ${isOverdue ? 'text-[#FF453A]' : 'text-white'}`}>
               {formatDate(note.dueDate)}
             </span>
           </div>
-          <span className="text-[11px] font-mono text-slate-400">
-            {note.payments.length} {note.payments.length === 1 ? 'amortização' : 'amortizações'}
+          <span className="text-[11px] text-[#8B95A5]">
+            {note.payments.length} {note.payments.length === 1 ? 'pagamento' : 'pagamentos'}
           </span>
         </div>
       </div>
 
-      {/* Action Footer */}
-      <div className="p-4 sm:p-5 pt-3 bg-[#0e1424] border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2">
+      {/* Action Buttons Footer */}
+      <div className="p-4 sm:p-5 pt-3 bg-[#161821] border-t border-[#262936] flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 flex-wrap">
           {!isFullyPaid ? (
             <>
               <button
                 onClick={() => onOpenPaymentModal(note)}
-                className="bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-black text-xs px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-[0_0_15px_rgba(16,185,129,0.25)] cursor-pointer"
+                className="bg-[#11C76F] hover:bg-[#0EAD60] active:scale-95 text-[#0D0E12] font-extrabold text-xs px-3.5 py-2 rounded-xl transition-all flex items-center gap-1 shadow-sm cursor-pointer"
               >
-                <Plus className="w-3.5 h-3.5 text-slate-950" />
-                <span>Amortizar</span>
+                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>Adicionar Pago</span>
               </button>
 
               <button
                 onClick={() => onQuickSettle(note)}
-                className="bg-[#131b2e] hover:bg-[#1a253f] active:scale-95 text-emerald-300 border border-emerald-500/30 font-bold text-xs px-3 py-2 rounded-xl transition-all flex items-center gap-1 cursor-pointer"
-                title="Quitar todo o saldo restante com eficácia liberatória"
+                className="bg-[#1E212D] hover:bg-[#262936] active:scale-95 text-[#11C76F] border border-[#11C76F]/20 font-bold text-xs px-3 py-2 rounded-xl transition-all flex items-center gap-1 cursor-pointer"
+                title="Quitar todo o saldo restante de uma vez"
               >
-                <CheckCheck className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Liquidar</span>
+                <CheckCheck className="w-3.5 h-3.5 text-[#11C76F]" />
+                <span>Quitar</span>
               </button>
             </>
           ) : (
-            <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-emerald-400 bg-emerald-950/80 px-3 py-2 rounded-xl border border-emerald-500/30">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-              <span>Título Resgatado</span>
+            <div className="flex items-center gap-1.5 text-xs font-bold text-[#11C76F] bg-[#11C76F]/10 px-3 py-2 rounded-xl border border-[#11C76F]/20">
+              <CheckCircle2 className="w-4 h-4 text-[#11C76F]" />
+              <span>Promissória Liquidada</span>
             </div>
           )}
         </div>
@@ -214,15 +211,15 @@ export const PromissoryCard: React.FC<PromissoryCardProps> = ({
         <div className="flex items-center gap-1">
           <button
             onClick={() => onOpenDetailsModal(note)}
-            className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
-            title="Visualizar Cédula / Nota Promissória Formal"
+            className="p-2 text-[#8B95A5] hover:text-white hover:bg-[#1E212D] rounded-xl transition-colors cursor-pointer"
+            title="Ver Comprovante e Promissória"
           >
-            <FileText className="w-4 h-4 text-emerald-400" />
+            <FileText className="w-4 h-4 text-[#11C76F]" />
           </button>
           <button
             onClick={() => onDeleteNote(note.id)}
-            className="p-2 text-slate-500 hover:text-rose-400 hover:bg-rose-950/30 rounded-xl transition-colors cursor-pointer"
-            title="Excluir Registro da Promissória"
+            className="p-2 text-[#8B95A5] hover:text-[#FF453A] hover:bg-[#241318] rounded-xl transition-colors cursor-pointer"
+            title="Excluir Promissória"
           >
             <Trash2 className="w-4 h-4" />
           </button>

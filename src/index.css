@@ -1,32 +1,47 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-display: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
-  --font-serif: 'Newsreader', Georgia, serif;
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'Space Mono', monospace;
+
+  --color-picpay-green: #11C76F;
+  --color-picpay-green-hover: #0EAD60;
+  --color-picpay-green-dark: #0A5A34;
+  --color-picpay-dark-bg: #0D0E12;
+  --color-picpay-surface: #161821;
+  --color-picpay-surface-hover: #1E212D;
+  --color-picpay-input: #12141A;
+  --color-picpay-border: #262936;
+  --color-picpay-text-muted: #8B95A5;
 }
 
-/* Custom dark scrollbar */
+/* Custom PicPay style scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #090d16;
+  background: #0D0E12;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
+  background: #262936;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #10b981;
+  background: #11C76F;
 }
 
-/* Smooth transitions */
+/* Clean border hairline default */
 * {
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: #262936;
+}
+
+/* Tabular figures for financial numbers */
+.font-tabular {
+  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums;
 }

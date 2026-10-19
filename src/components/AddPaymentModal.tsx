@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, CheckCircle2, DollarSign, Calendar, CreditCard, FileText, ArrowDownLeft } from 'lucide-react';
+import { X, CheckCircle2, DollarSign, Calendar, CreditCard, FileText } from 'lucide-react';
 import { PromissoryNote, PaymentMethod } from '../types';
 import { formatCurrency, calculateNoteFinancials } from '../utils/storage';
 
@@ -54,17 +54,16 @@ export const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
     const parsedAmount = parseFloat(amount.replace(',', '.'));
 
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      setError('Informe um valor de amortização válido.');
+      setError('Informe um valor de pagamento válido.');
       return;
     }
 
     if (parsedAmount > remainingAmount + 0.01) {
-      setError(`O montante não pode superar o passivo remanescente de ${formatCurrency(remainingAmount)}.`);
+      setError(`O valor não pode ultrapassar o saldo restante de ${formatCurrency(remainingAmount)}.`);
       return;
     }
 
-    // Gerar código de recibo automático se não preenchido
-    const finalAuth = authCode.trim() || `REC-${Date.now().toString().slice(-6)}`;
+    const finalAuth = authCode.trim() || `PAG-${Date.now().toString().slice(-6)}`;
 
     onAddPayment(note.id, {
       amount: parsedAmount,
@@ -78,79 +77,79 @@ export const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in font-['Inter',sans-serif]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in font-['Plus_Jakarta_Sans',sans-serif]">
       <div 
-        className="bg-[#0e1424] rounded-3xl w-full max-w-md shadow-[0_20px_60px_rgba(0,0,0,0.8)] border border-slate-800 overflow-hidden flex flex-col"
+        className="bg-[#161821] rounded-3xl w-full max-w-md shadow-2xl border border-[#262936] overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="bg-[#080c16] text-white p-5 px-6 flex items-center justify-between border-b border-slate-800">
+        <div className="bg-[#12141A] p-5 px-6 flex items-center justify-between border-b border-[#262936]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-950/80 text-emerald-400 border border-emerald-500/30 flex items-center justify-center">
-              <ArrowDownLeft className="w-5 h-5 text-emerald-400" />
+            <div className="w-10 h-10 rounded-xl bg-[#11C76F]/10 text-[#11C76F] border border-[#11C76F]/20 flex items-center justify-center font-bold">
+              <DollarSign className="w-5 h-5 stroke-[2.5]" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-bold text-base font-['Space_Grotesk',sans-serif] text-white">
-                  Averbação de Amortização
+                <h3 className="font-bold text-base text-white">
+                  Adicionar Pagamento
                 </h3>
-                <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/80 border border-emerald-500/30 px-1.5 py-0.5 rounded">
+                <span className="text-[10px] font-mono text-[#11C76F] bg-[#11C76F]/10 border border-[#11C76F]/20 px-1.5 py-0.5 rounded">
                   {note.code}
                 </span>
               </div>
-              <p className="text-xs text-slate-400">Lançamento de pagamento parcial ou quitação em tesouraria</p>
+              <p className="text-xs text-[#8B95A5]">Amortização ou quitação da conta</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+            className="p-1.5 text-[#8B95A5] hover:text-white hover:bg-[#1E212D] rounded-xl transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Note Status Ledger */}
-        <div className="p-5 pb-3 bg-[#0a0f1c] border-b border-slate-800">
-          <div className="text-[11px] font-mono uppercase text-slate-500 font-medium">Beneficiário do Crédito:</div>
-          <div className="text-sm font-bold text-slate-100 truncate mb-2">{note.creditor}</div>
+        {/* Note Summary Card */}
+        <div className="p-5 pb-3 bg-[#12141A] border-b border-[#262936]">
+          <div className="text-xs text-[#8B95A5] font-medium">Favorecido:</div>
+          <div className="text-sm font-bold text-white truncate mb-2">{note.creditor}</div>
 
-          <div className="grid grid-cols-3 gap-2 bg-[#12192b] p-3 rounded-2xl border border-slate-800 text-center">
+          <div className="grid grid-cols-3 gap-2 bg-[#161821] p-3 rounded-2xl border border-[#262936] text-center">
             <div>
-              <span className="text-[10px] font-mono uppercase font-bold text-slate-400 block">Nominal</span>
-              <span className="text-xs font-mono font-bold text-slate-300">{formatCurrency(note.totalAmount)}</span>
+              <span className="text-[10px] uppercase font-bold text-[#8B95A5] block">Total</span>
+              <span className="text-xs font-semibold text-white">{formatCurrency(note.totalAmount)}</span>
             </div>
             <div>
-              <span className="text-[10px] font-mono uppercase font-bold text-emerald-400 block">Amortizado</span>
-              <span className="text-xs font-mono font-bold text-emerald-400">{formatCurrency(paidAmount)}</span>
+              <span className="text-[10px] uppercase font-bold text-[#11C76F] block">Já Pago</span>
+              <span className="text-xs font-bold text-[#11C76F]">{formatCurrency(paidAmount)}</span>
             </div>
             <div>
-              <span className="text-[10px] font-mono uppercase font-bold text-slate-400 block">Saldo Restante</span>
-              <span className="text-xs font-mono font-black text-white">{formatCurrency(remainingAmount)}</span>
+              <span className="text-[10px] uppercase font-bold text-[#8B95A5] block">Saldo</span>
+              <span className="text-xs font-extrabold text-white">{formatCurrency(remainingAmount)}</span>
             </div>
           </div>
         </div>
 
-        {/* Form */}
+        {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {error && (
-            <div className="p-3 bg-rose-950/60 border border-rose-500/40 text-rose-300 text-xs font-semibold rounded-xl text-center">
+            <div className="p-3 bg-[#241318] border border-[#FF3B30]/30 text-[#FF453A] text-xs font-semibold rounded-xl text-center">
               {error}
             </div>
           )}
 
-          {/* Valor a Amortizar */}
+          {/* Valor a Pagar */}
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="block text-xs font-mono font-bold text-slate-300 uppercase">
-                Montante a Amortizar (R$) *
+              <label className="block text-xs font-semibold text-[#8B95A5]">
+                Valor do Pagamento (R$) *
               </label>
-              <span className="text-xs font-mono text-slate-400">
+              <span className="text-xs font-semibold text-[#8B95A5]">
                 Máx: {formatCurrency(remainingAmount)}
               </span>
             </div>
 
             <div className="relative">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-mono font-black text-slate-500">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-base font-extrabold text-[#8B95A5]">
                 R$
               </span>
               <input
@@ -165,7 +164,7 @@ export const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
                   setError('');
                 }}
                 placeholder="0,00"
-                className="w-full pl-11 pr-4 py-3 bg-[#131b2e] border border-slate-800 rounded-xl text-base font-mono font-black text-emerald-400 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                className="w-full pl-11 pr-4 py-3 bg-[#12141A] border border-[#262936] rounded-xl text-lg font-extrabold text-[#11C76F] focus:outline-none focus:border-[#11C76F] focus:ring-1 focus:ring-[#11C76F]"
               />
             </div>
 
@@ -174,33 +173,33 @@ export const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
               <button
                 type="button"
                 onClick={() => handleShortcut(0.25)}
-                className="flex-1 py-1.5 text-[11px] font-mono font-bold bg-[#131b2e] hover:bg-[#1a253f] border border-slate-800 text-slate-300 rounded-lg cursor-pointer transition-colors"
+                className="flex-1 py-1.5 text-xs font-bold bg-[#1E212D] hover:bg-[#262936] border border-[#262936] text-[#8B95A5] hover:text-white rounded-lg cursor-pointer transition-colors"
               >
                 25%
               </button>
               <button
                 type="button"
                 onClick={() => handleShortcut(0.5)}
-                className="flex-1 py-1.5 text-[11px] font-mono font-bold bg-[#131b2e] hover:bg-[#1a253f] border border-slate-800 text-slate-300 rounded-lg cursor-pointer transition-colors"
+                className="flex-1 py-1.5 text-xs font-bold bg-[#1E212D] hover:bg-[#262936] border border-[#262936] text-[#8B95A5] hover:text-white rounded-lg cursor-pointer transition-colors"
               >
                 50%
               </button>
               <button
                 type="button"
                 onClick={() => handleShortcut(1)}
-                className="flex-2 py-1.5 text-[11px] font-mono font-black bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/40 text-emerald-300 rounded-lg cursor-pointer transition-colors"
+                className="flex-2 py-1.5 text-xs font-extrabold bg-[#11C76F]/10 hover:bg-[#11C76F]/20 border border-[#11C76F]/30 text-[#11C76F] rounded-lg cursor-pointer transition-colors"
               >
-                Liquidação Integral ({formatCurrency(remainingAmount)})
+                Quitar Saldo ({formatCurrency(remainingAmount)})
               </button>
             </div>
           </div>
 
-          {/* Modalidade de Pagamento */}
+          {/* Método de Pagamento */}
           <div>
-            <label className="block text-xs font-mono font-bold text-slate-300 uppercase mb-1">
-              Instrumento / Arranjo de Pagamento
+            <label className="block text-xs font-semibold text-[#8B95A5] mb-1">
+              Forma de Pagamento
             </label>
-            <div className="grid grid-cols-3 gap-2 font-mono">
+            <div className="grid grid-cols-3 gap-2">
               {(['pix', 'transferencia', 'ted_doc', 'dinheiro', 'cartao', 'boleto'] as PaymentMethod[]).map((m) => (
                 <button
                   type="button"
@@ -208,11 +207,11 @@ export const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
                   onClick={() => setMethod(m)}
                   className={`py-2 px-2 rounded-xl text-xs font-bold uppercase transition-all cursor-pointer text-center ${
                     method === m
-                      ? 'bg-emerald-500 text-slate-950 font-black shadow-[0_0_12px_rgba(16,185,129,0.3)]'
-                      : 'bg-[#131b2e] text-slate-400 hover:text-slate-200 hover:bg-[#1a253f] border border-slate-800'
+                      ? 'bg-[#11C76F] text-[#0D0E12]'
+                      : 'bg-[#12141A] text-[#8B95A5] hover:text-white border border-[#262936]'
                   }`}
                 >
-                  {m === 'transferencia' ? 'Transf.' : m === 'ted_doc' ? 'TED / DOC' : m}
+                  {m === 'transferencia' ? 'Transf.' : m === 'ted_doc' ? 'TED' : m}
                 </button>
               ))}
             </div>
@@ -220,64 +219,50 @@ export const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
 
           {/* Data do Pagamento */}
           <div>
-            <label className="block text-xs font-mono font-bold text-slate-300 uppercase mb-1">
-              Data Efetiva da Compensação
+            <label className="block text-xs font-semibold text-[#8B95A5] mb-1">
+              Data do Pagamento
             </label>
             <div className="relative">
-              <Calendar className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Calendar className="w-4 h-4 text-[#8B95A5] absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="date"
                 required
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full pl-10 pr-3.5 py-2.5 bg-[#131b2e] border border-slate-800 rounded-xl text-xs sm:text-sm font-mono text-white focus:outline-none focus:border-emerald-500"
+                className="w-full pl-10 pr-3.5 py-2.5 bg-[#12141A] border border-[#262936] rounded-xl text-xs sm:text-sm text-white focus:outline-none focus:border-[#11C76F]"
               />
             </div>
           </div>
 
-          {/* Autenticação Bancária / Recibo */}
+          {/* Recibo / Observação */}
           <div>
-            <label className="block text-xs font-mono font-bold text-slate-300 uppercase mb-1">
-              Código de Autenticação / Protocolo Bancário (Opcional)
-            </label>
-            <input
-              type="text"
-              value={authCode}
-              onChange={(e) => setAuthCode(e.target.value)}
-              placeholder="Ex: TED-889104 ou Chave E2E Pix"
-              className="w-full px-3.5 py-2 bg-[#131b2e] border border-slate-800 rounded-xl text-xs font-mono text-emerald-400 focus:outline-none focus:border-emerald-500"
-            />
-          </div>
-
-          {/* Observação / Recibo */}
-          <div>
-            <label className="block text-xs font-mono font-bold text-slate-300 uppercase mb-1">
-              Termo / Histórico da Amortização
+            <label className="block text-xs font-semibold text-[#8B95A5] mb-1">
+              Comprovante / Observação (Opcional)
             </label>
             <input
               type="text"
               value={noteText}
               onChange={(e) => setNoteText(e.target.value)}
-              placeholder="Ex: Amortização parcial acordada via diretoria financeira"
-              className="w-full px-3.5 py-2.5 bg-[#131b2e] border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500 font-mono"
+              placeholder="Ex: Parcela paga via Pix PicPay"
+              className="w-full px-3.5 py-2.5 bg-[#12141A] border border-[#262936] rounded-xl text-xs sm:text-sm text-white placeholder-[#5F6876] focus:outline-none focus:border-[#11C76F]"
             />
           </div>
 
           {/* Actions */}
-          <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-800">
+          <div className="pt-2 flex items-center justify-end gap-2 border-t border-[#262936]">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+              className="px-4 py-2.5 rounded-xl text-xs font-bold text-[#8B95A5] hover:text-white hover:bg-[#1E212D] transition-colors cursor-pointer"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black font-mono rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all cursor-pointer flex items-center gap-1.5"
+              className="px-5 py-2.5 bg-[#11C76F] hover:bg-[#0EAD60] text-[#0D0E12] text-xs font-extrabold rounded-xl shadow-[0_2px_12px_rgba(17,199,111,0.2)] transition-all cursor-pointer flex items-center gap-1.5"
             >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>Averbar Pagamento</span>
+              <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
+              <span>Confirmar Pagamento</span>
             </button>
           </div>
         </form>
