@@ -1,150 +1,139 @@
-import { PromissoryNote, DashboardSummary } from '../types';
+import { DebtAccount, Installment, DashboardSummary } from '../types';
 
-const STORAGE_KEY = 'promissory_notes_corporate_db_v2';
+const STORAGE_KEY = 'promissory_pay_accounts_v3';
 
-export const SEED_NOTES: PromissoryNote[] = [
-  {
-    id: 'np-2026-001',
-    code: 'NP-2026/089',
-    title: 'Cédula de Crédito Mercantil - Fornecimento de Polímeros & Resinas',
-    creditor: 'Petroquímica & Resinas União S.A.',
-    creditorDoc: '14.892.451/0001-88',
-    debtor: 'Soluções Empresariais & Manufatura Ltda.',
-    debtorDoc: '08.723.119/0001-42',
-    totalAmount: 18500.0,
-    issueDate: '2026-09-01',
-    dueDate: '2026-11-15',
-    place: 'Comarca de São Paulo - SP',
-    notes: 'Título executivo emitido sob a égide do Decreto nº 2.044/1908 e Lei Uniforme de Genebra (Dec. nº 57.663/66). Vinculado à NF-e nº 008.912.',
-    status: 'parcial',
-    createdAt: '2026-09-01T08:00:00.000Z',
-    payments: [
-      {
-        id: 'pay-001-1',
-        amount: 6500.0,
-        date: '2026-09-20',
-        method: 'transferencia',
-        note: '1ª Amortização ordinária de tesouraria',
-        authCode: 'TED-89410294-BCB',
-        registeredAt: '2026-09-20T14:30:00.000Z',
-      },
-      {
-        id: 'pay-001-2',
-        amount: 4000.0,
-        date: '2026-10-05',
-        method: 'pix',
-        note: '2ª Amortização extraordinária via arranjo instantâneo',
-        authCode: 'E18236128202610051600a9f81',
-        registeredAt: '2026-10-05T16:00:00.000Z',
-      },
-    ],
-  },
-  {
-    id: 'np-2026-002',
-    code: 'NP-2026/074',
-    title: 'Contrato de Modernização Estrutural e Engenharia Térmica',
-    creditor: 'Aliança Engenharia & Climatização Industrial Ltda.',
-    creditorDoc: '22.304.918/0001-15',
-    debtor: 'Soluções Empresariais & Manufatura Ltda.',
-    debtorDoc: '08.723.119/0001-42',
-    totalAmount: 9400.0,
-    issueDate: '2026-08-10',
-    dueDate: '2026-10-10',
-    place: 'Comarca de Campinas - SP',
-    notes: 'Termo de quitação plena, geral e irrevogável emitido pelo credor após cumprimento integral da obrigação.',
-    status: 'quitado',
-    createdAt: '2026-08-10T09:30:00.000Z',
-    payments: [
-      {
-        id: 'pay-002-1',
-        amount: 4700.0,
-        date: '2026-09-10',
-        method: 'transferencia',
-        note: 'Entrada formal de mobilização técnica',
-        authCode: 'TED-77192831-BCB',
-        registeredAt: '2026-09-10T11:00:00.000Z',
-      },
-      {
-        id: 'pay-002-2',
-        amount: 4700.0,
-        date: '2026-10-09',
-        method: 'pix',
-        note: 'Liquidação e resgate definitivo do título',
-        authCode: 'E18236128202610091715b7e23',
-        registeredAt: '2026-10-09T17:15:00.000Z',
-      },
-    ],
-  },
-  {
-    id: 'np-2026-003',
-    code: 'NP-2026/092',
-    title: 'Financiamento Operacional de Centro de Usinagem CNC',
-    creditor: 'TecnoMáquinas Brasil Importação & Distribuição S.A.',
-    creditorDoc: '03.491.820/0001-99',
-    debtor: 'Soluções Empresariais & Manufatura Ltda.',
-    debtorDoc: '08.723.119/0001-42',
-    totalAmount: 32000.0,
-    issueDate: '2026-10-01',
-    dueDate: '2026-12-20',
-    place: 'Comarca de São Paulo - SP',
-    notes: 'Garantia vinculada com cláusula de reserva de domínio sobre equipamento modelo CNC-Pro 5X.',
-    status: 'pendente',
-    createdAt: '2026-10-01T08:30:00.000Z',
-    payments: [],
-  },
-  {
-    id: 'np-2026-004',
-    code: 'NP-2026/065',
-    title: 'Fornecimento Contratual de Matéria-Prima Metálica e Perfis',
-    creditor: 'Siderúrgica & Perfis São Bento Ltda.',
-    creditorDoc: '61.492.381/0001-04',
-    debtor: 'Soluções Empresariais & Manufatura Ltda.',
-    debtorDoc: '08.723.119/0001-42',
-    totalAmount: 7800.0,
-    issueDate: '2026-08-25',
-    dueDate: '2026-10-05',
-    place: 'Comarca de Santo André - SP',
-    notes: 'Título vencido em aberto com notificação extrajudicial em curso. Sujeito à cláusula penal de 2% ao mês.',
-    status: 'parcial',
-    createdAt: '2026-08-25T13:20:00.000Z',
-    payments: [
-      {
-        id: 'pay-004-1',
-        amount: 2500.0,
-        date: '2026-09-15',
-        method: 'cartao',
-        note: 'Amortização de boa-fé em balcão',
-        authCode: 'AUT-6619028',
-        registeredAt: '2026-09-15T15:00:00.000Z',
-      },
-    ],
-  },
-];
+// --- Geração de parcelas ---
+export const generateInstallments = (totalAmount: number, installmentValue: number): Installment[] => {
+  if (installmentValue <= 0 || totalAmount <= 0) return [];
+  
+  const fullInstallments = Math.floor(totalAmount / installmentValue);
+  const remainder = Math.round((totalAmount - fullInstallments * installmentValue) * 100) / 100;
+  
+  const installments: Installment[] = [];
 
-export const loadPromissoryNotes = (): PromissoryNote[] => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
-      }
-    }
-  } catch (err) {
-    console.error('Erro ao ler base corporativa', err);
+  for (let i = 1; i <= fullInstallments; i++) {
+    installments.push({
+      id: `inst_${Date.now()}_${i}`,
+      number: i,
+      originalAmount: installmentValue,
+      paidAmount: 0,
+      status: 'pendente',
+    });
   }
-  savePromissoryNotes(SEED_NOTES);
-  return SEED_NOTES;
+
+  if (remainder > 0.001) {
+    installments.push({
+      id: `inst_${Date.now()}_${fullInstallments + 1}`,
+      number: fullInstallments + 1,
+      originalAmount: Math.round(remainder * 100) / 100,
+      paidAmount: 0,
+      status: 'pendente',
+    });
+  }
+
+  return installments;
 };
 
-export const savePromissoryNotes = (notes: PromissoryNote[]): void => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
-  } catch (err) {
-    console.error('Erro ao persistir base corporativa', err);
-  }
+// --- Distribuição de pagamento sequencial nas parcelas ---
+export const distributePayment = (
+  installments: Installment[],
+  paymentAmount: number
+): { updatedInstallments: Installment[]; distribution: { installmentNumber: number; amount: number }[] } => {
+  let remaining = paymentAmount;
+  const distribution: { installmentNumber: number; amount: number }[] = [];
+  
+  const updated = installments.map((inst) => {
+    if (remaining <= 0.001 || inst.status === 'pago') return { ...inst };
+    
+    const owed = Math.round((inst.originalAmount - inst.paidAmount) * 100) / 100;
+    if (owed <= 0.001) return { ...inst, status: 'pago' as const, paidAmount: inst.originalAmount };
+
+    const toApply = Math.min(remaining, owed);
+    remaining = Math.round((remaining - toApply) * 100) / 100;
+
+    const newPaid = Math.round((inst.paidAmount + toApply) * 100) / 100;
+    const newOwed = Math.round((inst.originalAmount - newPaid) * 100) / 100;
+
+    distribution.push({ installmentNumber: inst.number, amount: toApply });
+
+    return {
+      ...inst,
+      paidAmount: newPaid,
+      status: newOwed <= 0.001 ? ('pago' as const) : ('parcial' as const),
+      paidAt: newOwed <= 0.001 ? new Date().toISOString() : inst.paidAt,
+    };
+  });
+
+  return { updatedInstallments: updated, distribution };
 };
 
+// --- Cálculos de status da conta ---
+export const calculateAccountFinancials = (account: DebtAccount) => {
+  const totalPaid = account.installments.reduce((sum, i) => sum + i.paidAmount, 0);
+  const totalRemaining = Math.max(0, Math.round((account.totalAmount - totalPaid) * 100) / 100);
+  const progressPercent = account.totalAmount > 0
+    ? Math.min(100, Math.round((totalPaid / account.totalAmount) * 100))
+    : 100;
+
+  const paidInstallments = account.installments.filter((i) => i.status === 'pago').length;
+  const totalInstallments = account.installments.length;
+  const pendingInstallments = account.installments.filter((i) => i.status === 'pendente').length;
+  const partialInstallments = account.installments.filter((i) => i.status === 'parcial').length;
+
+  let computedStatus: 'em_aberto' | 'parcial' | 'quitado';
+  if (totalRemaining <= 0.01) {
+    computedStatus = 'quitado';
+  } else if (totalPaid > 0.01) {
+    computedStatus = 'parcial';
+  } else {
+    computedStatus = 'em_aberto';
+  }
+
+  return {
+    totalPaid,
+    totalRemaining,
+    progressPercent,
+    paidInstallments,
+    totalInstallments,
+    pendingInstallments,
+    partialInstallments,
+    computedStatus,
+  };
+};
+
+// --- Dashboard Summary ---
+export const calculateDashboardSummary = (accounts: DebtAccount[]): DashboardSummary => {
+  let totalOriginal = 0;
+  let totalPaid = 0;
+  let openCount = 0;
+  let partialCount = 0;
+  let paidCount = 0;
+
+  accounts.forEach((acc) => {
+    totalOriginal += acc.totalAmount;
+    const { totalPaid: paid, computedStatus } = calculateAccountFinancials(acc);
+    totalPaid += paid;
+    if (computedStatus === 'quitado') paidCount++;
+    else if (computedStatus === 'parcial') partialCount++;
+    else openCount++;
+  });
+
+  const totalPending = Math.max(0, Math.round((totalOriginal - totalPaid) * 100) / 100);
+  const liquidityRate = totalOriginal > 0 ? Math.round((totalPaid / totalOriginal) * 100) : 100;
+
+  return {
+    totalOriginal,
+    totalPaid,
+    totalPending,
+    totalAccountsCount: accounts.length,
+    openCount,
+    partialCount,
+    paidCount,
+    liquidityRate,
+  };
+};
+
+// --- Formatação ---
 export const formatCurrency = (value: number): string => {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
@@ -157,86 +146,96 @@ export const formatDate = (dateString?: string): string => {
   if (!dateString) return '-';
   try {
     const [year, month, day] = dateString.split('T')[0].split('-');
-    if (year && month && day) {
-      return `${day}/${month}/${year}`;
-    }
+    if (year && month && day) return `${day}/${month}/${year}`;
     const d = new Date(dateString);
-    if (!isNaN(d.getTime())) {
-      return d.toLocaleDateString('pt-BR');
-    }
+    if (!isNaN(d.getTime())) return d.toLocaleDateString('pt-BR');
   } catch {}
   return dateString;
 };
 
-export interface NoteFinancials {
-  paidAmount: number;
-  remainingAmount: number;
-  progressPercent: number;
-  isOverdue: boolean;
-  computedStatus: 'pendente' | 'parcial' | 'quitado' | 'vencido';
-}
+// --- Seed Data (Dados de Exemplo) ---
+export const SEED_ACCOUNTS: DebtAccount[] = [
+  {
+    id: 'acc-1',
+    code: 'CT-001',
+    debtorName: 'Marcos Oliveira',
+    debts: [
+      { id: 'd1a', name: 'Material de construção', amount: 1200 },
+      { id: 'd1b', name: 'Serviço de pintura', amount: 800 },
+    ],
+    totalAmount: 2000,
+    installmentValue: 500,
+    installments: [
+      { id: 'i1a', number: 1, originalAmount: 500, paidAmount: 500, status: 'pago', paidAt: '2026-09-15T14:00:00Z' },
+      { id: 'i1b', number: 2, originalAmount: 500, paidAmount: 300, status: 'parcial' },
+      { id: 'i1c', number: 3, originalAmount: 500, paidAmount: 0, status: 'pendente' },
+      { id: 'i1d', number: 4, originalAmount: 500, paidAmount: 0, status: 'pendente' },
+    ],
+    payments: [
+      { id: 'p1a', amount: 500, date: '2026-09-15', method: 'pix', note: 'Primeira parcela', registeredAt: '2026-09-15T14:00:00Z' },
+      { id: 'p1b', amount: 300, date: '2026-10-05', method: 'dinheiro', note: 'Pagamento parcial', registeredAt: '2026-10-05T10:00:00Z' },
+    ],
+    status: 'parcial',
+    createdAt: '2026-09-01T08:00:00Z',
+    notes: 'Reforma do ponto comercial',
+  },
+  {
+    id: 'acc-2',
+    code: 'CT-002',
+    debtorName: 'Ana Carolina Silva',
+    debts: [
+      { id: 'd2a', name: 'Compra de tecidos', amount: 950 },
+      { id: 'd2b', name: 'Aviamentos e acessórios', amount: 350 },
+      { id: 'd2c', name: 'Frete de mercadoria', amount: 200 },
+    ],
+    totalAmount: 1500,
+    installmentValue: 500,
+    installments: [
+      { id: 'i2a', number: 1, originalAmount: 500, paidAmount: 0, status: 'pendente' },
+      { id: 'i2b', number: 2, originalAmount: 500, paidAmount: 0, status: 'pendente' },
+      { id: 'i2c', number: 3, originalAmount: 500, paidAmount: 0, status: 'pendente' },
+    ],
+    payments: [],
+    status: 'em_aberto',
+    createdAt: '2026-10-10T12:00:00Z',
+  },
+  {
+    id: 'acc-3',
+    code: 'CT-003',
+    debtorName: 'João Pedro Santos',
+    debts: [
+      { id: 'd3a', name: 'Peças automotivas', amount: 780 },
+    ],
+    totalAmount: 780,
+    installmentValue: 400,
+    installments: [
+      { id: 'i3a', number: 1, originalAmount: 400, paidAmount: 400, status: 'pago', paidAt: '2026-09-20T11:00:00Z' },
+      { id: 'i3b', number: 2, originalAmount: 380, paidAmount: 380, status: 'pago', paidAt: '2026-10-15T16:00:00Z' },
+    ],
+    payments: [
+      { id: 'p3a', amount: 400, date: '2026-09-20', method: 'pix', note: 'Parcela 1', registeredAt: '2026-09-20T11:00:00Z' },
+      { id: 'p3b', amount: 380, date: '2026-10-15', method: 'transferencia', note: 'Quitação', registeredAt: '2026-10-15T16:00:00Z' },
+    ],
+    status: 'quitado',
+    createdAt: '2026-09-05T09:00:00Z',
+  },
+];
 
-export const calculateNoteFinancials = (note: PromissoryNote): NoteFinancials => {
-  const paidAmount = (note.payments || []).reduce((acc, p) => acc + (p.amount || 0), 0);
-  const remainingAmount = Math.max(0, note.totalAmount - paidAmount);
-  const progressPercent = note.totalAmount > 0 
-    ? Math.min(100, Math.round((paidAmount / note.totalAmount) * 100)) 
-    : 100;
-
-  const todayStr = new Date().toISOString().split('T')[0];
-  const isOverdue = remainingAmount > 0.001 && note.dueDate < todayStr;
-
-  let computedStatus: 'pendente' | 'parcial' | 'quitado' | 'vencido';
-  if (remainingAmount <= 0.001) {
-    computedStatus = 'quitado';
-  } else if (isOverdue) {
-    computedStatus = 'vencido';
-  } else if (paidAmount > 0) {
-    computedStatus = 'parcial';
-  } else {
-    computedStatus = 'pendente';
-  }
-
-  return {
-    paidAmount,
-    remainingAmount,
-    progressPercent,
-    isOverdue,
-    computedStatus,
-  };
+// --- Persistência ---
+export const loadAccounts = (): DebtAccount[] => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch {}
+  saveAccounts(SEED_ACCOUNTS);
+  return SEED_ACCOUNTS;
 };
 
-export const calculateDashboardSummary = (notes: PromissoryNote[]): DashboardSummary => {
-  let totalOriginal = 0;
-  let totalPaid = 0;
-  let pendingCount = 0;
-  let partialCount = 0;
-  let paidCount = 0;
-  let overdueCount = 0;
-
-  notes.forEach((note) => {
-    totalOriginal += note.totalAmount;
-    const { paidAmount, computedStatus } = calculateNoteFinancials(note);
-    totalPaid += paidAmount;
-
-    if (computedStatus === 'quitado') paidCount++;
-    else if (computedStatus === 'vencido') overdueCount++;
-    else if (computedStatus === 'parcial') partialCount++;
-    else pendingCount++;
-  });
-
-  const totalPending = Math.max(0, totalOriginal - totalPaid);
-  const liquidityRate = totalOriginal > 0 ? Math.round((totalPaid / totalOriginal) * 100) : 100;
-
-  return {
-    totalOriginal,
-    totalPaid,
-    totalPending,
-    totalNotesCount: notes.length,
-    pendingCount,
-    partialCount,
-    paidCount,
-    overdueCount,
-    liquidityRate,
-  };
+export const saveAccounts = (accounts: DebtAccount[]): void => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(accounts));
+  } catch {}
 };

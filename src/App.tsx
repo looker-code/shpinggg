@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
-import { PromissoryNote, PaymentMethod } from './types';
+import { DebtAccount, PaymentMethod } from './types';
 import { 
-  loadPromissoryNotes, 
-  savePromissoryNotes, 
-  calculateNoteFinancials, 
-  calculateDashboardSummary 
+  loadAccounts, 
+  saveAccounts, 
+  calculateAccountFinancials, 
+  calculateDashboardSummary,
+  generateInstallments,
+  distributePayment
 } from './utils/storage';
 import { LoginScreen } from './components/LoginScreen';
 import { Header } from './components/Header';
@@ -16,30 +18,25 @@ import { AddPaymentModal } from './components/AddPaymentModal';
 import { PromissoryDetailsModal } from './components/PromissoryDetailsModal';
 
 export default function App() {
-  // Estado de autenticação persistido
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return localStorage.getItem('promissory_auth_picpay') === 'true';
+    return localStorage.getItem('promissory_auth_picpay_v3') === 'true';
   });
 
-  // Aba ativa
   const [activeTab, setActiveTab] = useState<'inicio' | 'a-pagar'>('inicio');
 
-  // Base de promissórias
-  const [notes, setNotes] = useState<PromissoryNote[]>(() => {
-    return loadPromissoryNotes();
+  const [accounts, setAccounts] = useState<DebtAccount[]>(() => {
+    return loadAccounts();
   });
 
-  // Controle de modais
   const [isNewAccountModalOpen, setIsNewAccountModalOpen] = useState(false);
-  const [selectedNoteForPayment, setSelectedNoteForPayment] = useState<PromissoryNote | null>(null);
-  const [selectedNoteForDetails, setSelectedNoteForDetails] = useState<PromissoryNote | null>(null);
+  const [selectedAccountForPayment, setSelectedAccountForPayment] = useState<DebtAccount | null>(null);
+  const [selectedAccountForDetails, setSelectedAccountForDetails] = useState<DebtAccount | null>(null);
 
-  // Notificações flutuantes (Toast PicPay Style)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'warn' } | null>(null);
 
   useEffect(() => {
-    savePromissoryNotes(notes);
-  }, [notes]);
+    saveAccounts(accounts);
+  }, [accounts]);
 
   const showToast = (message: string, type: 'success' | 'info' | 'warn' = 'success') => {
     setToast({ message, type });
@@ -49,53 +46,66 @@ export default function App() {
   };
 
   const handleLogin = () => {
-    localStorage.setItem('promissory_auth_picpay', 'true');
+    localStorage.setItem('promissory_auth_picpay_v3', 'true');
     setIsAuthenticated(true);
     showToast('Acesso autorizado! Bem-vindo ao PromissóriaPay.');
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('promissory_auth_picpay');
+    localStorage.removeItem('promissory_auth_picpay_v3');
     setIsAuthenticated(false);
     showToast('Sessão finalizada com sucesso.', 'info');
   };
 
   // Gerador de código sequencial
   const getNextCodeSuggestion = () => {
-    const currentYear = new Date().getFullYear();
-    const existingNumbers = notes.map((n) => {
-      const match = n.code.match(/NP-\d+\/(\d+)/i) || n.code.match(/PROM-(\d+)/i);
+    const existingNumbers = accounts.map((a) => {
+      const match = a.code.match(/CT-(\d+)/i);
       return match ? parseInt(match[1], 10) : 0;
     });
     const maxNum = existingNumbers.length > 0 ? Math.max(...existingNumbers, 0) : 0;
     const nextNum = maxNum + 1;
-    return `NP-${currentYear}/${String(nextNum).padStart(3, '0')}`;
+    return `CT-${String(nextNum).padStart(3, '0')}`;
   };
 
-  // Criação de nova promissória
-  const handleCreateNote = (
-    noteData: Omit<PromissoryNote, 'id' | 'payments' | 'createdAt' | 'status'>
-  ) => {
-    const newNote: PromissoryNote = {
-      ...noteData,
-      id: `np_${Date.now()}`,
+  // Cadastro de nova conta com parcelamento automático
+  const handleCreateAccount = (accountData: {
+    debtorName: string;
+    debts: { id: string; name: string; amount: number }[];
+    totalAmount: number;
+    installmentValue: number;
+    notes?: string;
+  }) => {
+    const generated = generateInstallments(accountData.totalAmount, accountData.installmentValue);
+
+    const newAccount: DebtAccount = {
+      id: `acc_${Date.now()}`,
+      code: getNextCodeSuggestion(),
+      debtorName: accountData.debtorName,
+      debts: accountData.debts,
+      totalAmount: accountData.totalAmount,
+      installmentValue: accountData.installmentValue,
+      installments: generated,
       payments: [],
-      status: 'pendente',
+      status: 'em_aberto',
       createdAt: new Date().toISOString(),
+      notes: accountData.notes,
     };
 
-    setNotes((prev) => [newNote, ...prev]);
-    showToast(`Promissória ${newNote.code} cadastrada com sucesso!`);
+    setAccounts((prev) => [newAccount, ...prev]);
+    showToast(`Conta de ${newAccount.debtorName} cadastrada em ${generated.length}x!`);
   };
 
-  // Amortização parcial ou total
+  // Adicionar pagamento com distribuição sequencial inteligente nas parcelas
   const handleAddPayment = (
-    noteId: string,
-    paymentData: { amount: number; date: string; method: PaymentMethod; note?: string; authCode?: string }
+    accountId: string,
+    paymentData: { amount: number; date: string; method: PaymentMethod; note?: string }
   ) => {
-    setNotes((prevNotes) =>
-      prevNotes.map((note) => {
-        if (note.id !== noteId) return note;
+    setAccounts((prevAccounts) =>
+      prevAccounts.map((acc) => {
+        if (acc.id !== accountId) return acc;
+
+        const { updatedInstallments, distribution } = distributePayment(acc.installments, paymentData.amount);
 
         const newPayment = {
           id: `pay_${Date.now()}`,
@@ -103,13 +113,13 @@ export default function App() {
           date: paymentData.date,
           method: paymentData.method,
           note: paymentData.note,
-          authCode: paymentData.authCode,
           registeredAt: new Date().toISOString(),
+          distribution,
         };
 
-        const updatedPayments = [...(note.payments || []), newPayment];
-        const totalPaid = updatedPayments.reduce((acc, p) => acc + p.amount, 0);
-        const isSettled = totalPaid >= note.totalAmount - 0.01;
+        const updatedPayments = [...(acc.payments || []), newPayment];
+        const totalPaid = updatedPayments.reduce((sum, p) => sum + p.amount, 0);
+        const isSettled = totalPaid >= acc.totalAmount - 0.01;
 
         if (isSettled) {
           try {
@@ -120,13 +130,14 @@ export default function App() {
               colors: ['#11C76F', '#0FA85D', '#E7FAF0', '#FFFFFF'],
             });
           } catch {}
-          showToast(`Promissória ${note.code} foi totalmente QUITADA! Parabéns!`);
+          showToast(`Dívida de ${acc.debtorName} foi totalmente QUITADA! Parabéns!`);
         } else {
-          showToast(`Pagamento de R$ ${paymentData.amount.toFixed(2)} registrado com sucesso!`);
+          showToast(`Pagamento de R$ ${paymentData.amount.toFixed(2)} abatido das parcelas!`);
         }
 
         return {
-          ...note,
+          ...acc,
+          installments: updatedInstallments,
           payments: updatedPayments,
           status: isSettled ? 'quitado' : 'parcial',
         };
@@ -134,42 +145,45 @@ export default function App() {
     );
   };
 
-  // Liquidação integral imediata
-  const handleQuickSettle = (note: PromissoryNote) => {
-    const { remainingAmount } = calculateNoteFinancials(note);
-    if (remainingAmount <= 0) {
-      showToast('Esta promissória já está quitada.', 'info');
+  // Quitação total imediata
+  const handleQuickSettle = (account: DebtAccount) => {
+    const { totalRemaining } = calculateAccountFinancials(account);
+    if (totalRemaining <= 0) {
+      showToast('Esta dívida já está quitada.', 'info');
       return;
     }
 
     if (
       !window.confirm(
-        `Confirma a quitação integral do saldo restante de ${new Intl.NumberFormat('pt-BR', {
+        `Confirma a quitação integral de ${new Intl.NumberFormat('pt-BR', {
           style: 'currency',
           currency: 'BRL',
-        }).format(remainingAmount)} da promissória ${note.code}?`
+        }).format(totalRemaining)} da conta de ${account.debtorName}?`
       )
     ) {
       return;
     }
 
     const todayStr = new Date().toISOString().split('T')[0];
+    const { updatedInstallments, distribution } = distributePayment(account.installments, totalRemaining);
+
     const settlementPayment = {
       id: `pay_${Date.now()}`,
-      amount: remainingAmount,
+      amount: totalRemaining,
       date: todayStr,
       method: 'pix' as PaymentMethod,
       note: 'Quitação total do saldo restante',
-      authCode: `LIQ-${Date.now().toString().slice(-6)}`,
       registeredAt: new Date().toISOString(),
+      distribution,
     };
 
-    setNotes((prev) =>
-      prev.map((n) => {
-        if (n.id !== note.id) return n;
+    setAccounts((prev) =>
+      prev.map((a) => {
+        if (a.id !== account.id) return a;
         return {
-          ...n,
-          payments: [...(n.payments || []), settlementPayment],
+          ...a,
+          installments: updatedInstallments,
+          payments: [...(a.payments || []), settlementPayment],
           status: 'quitado',
         };
       })
@@ -184,37 +198,38 @@ export default function App() {
       });
     } catch {}
 
-    showToast(`Promissória ${note.code} foi quitada com sucesso!`);
+    showToast(`Dívida de ${account.debtorName} quitada com sucesso!`);
   };
 
-  // Exclusão de nota
-  const handleDeleteNote = (id: string) => {
-    const target = notes.find((n) => n.id === id);
+  // Exclusão de conta
+  const handleDeleteAccount = (id: string) => {
+    const target = accounts.find((a) => a.id === id);
     if (!target) return;
 
-    if (window.confirm(`Tem certeza que deseja excluir a promissória ${target.code} (${target.title})?`)) {
-      setNotes((prev) => prev.filter((n) => n.id !== id));
-      showToast(`Promissória ${target.code} excluída.`);
+    if (window.confirm(`Tem certeza que deseja excluir a conta de ${target.debtorName}?`)) {
+      setAccounts((prev) => prev.filter((a) => a.id !== id));
+      showToast(`Conta de ${target.debtorName} excluída.`);
     }
   };
 
-  const currentDetailsNote = selectedNoteForDetails
-    ? notes.find((n) => n.id === selectedNoteForDetails.id) || null
+  // Sincronização dos modais com os dados atualizados
+  const currentDetailsAccount = selectedAccountForDetails
+    ? accounts.find((a) => a.id === selectedAccountForDetails.id) || null
     : null;
 
-  const currentPaymentNote = selectedNoteForPayment
-    ? notes.find((n) => n.id === selectedNoteForPayment.id) || null
+  const currentPaymentAccount = selectedAccountForPayment
+    ? accounts.find((a) => a.id === selectedAccountForPayment.id) || null
     : null;
 
   if (!isAuthenticated) {
     return <LoginScreen onLogin={handleLogin} />;
   }
 
-  const summary = calculateDashboardSummary(notes);
+  const summary = calculateDashboardSummary(accounts);
 
   return (
     <div className="min-h-screen bg-[#0D0E12] text-white font-['Plus_Jakarta_Sans',sans-serif] flex flex-col selection:bg-[#11C76F] selection:text-[#0D0E12]">
-      {/* Toast Notification (PicPay Dark Style) */}
+      {/* Toast PicPay Style */}
       {toast && (
         <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-5 fade-in duration-200">
           <div className={`px-4 py-3 rounded-2xl shadow-2xl text-xs font-bold flex items-center gap-2.5 border ${
@@ -230,35 +245,35 @@ export default function App() {
         </div>
       )}
 
-      {/* Primary Header */}
+      {/* Header */}
       <Header
         activeTab={activeTab}
         onTabChange={(tab) => setActiveTab(tab)}
         onOpenNewAccount={() => setIsNewAccountModalOpen(true)}
         onLogout={handleLogout}
-        pendingCount={summary.pendingCount + summary.partialCount}
-        overdueCount={summary.overdueCount}
+        pendingCount={summary.openCount + summary.partialCount}
+        overdueCount={0}
       />
 
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8">
         {activeTab === 'inicio' ? (
           <DashboardTab
-            notes={notes}
+            accounts={accounts}
             onOpenNewAccount={() => setIsNewAccountModalOpen(true)}
             onNavigateToPayable={() => setActiveTab('a-pagar')}
-            onOpenPaymentModal={(note) => setSelectedNoteForPayment(note)}
-            onOpenDetailsModal={(note) => setSelectedNoteForDetails(note)}
+            onOpenPaymentModal={(acc) => setSelectedAccountForPayment(acc)}
+            onOpenDetailsModal={(acc) => setSelectedAccountForDetails(acc)}
             onQuickSettle={handleQuickSettle}
           />
         ) : (
           <AccountsPayableTab
-            notes={notes}
+            accounts={accounts}
             onOpenNewAccount={() => setIsNewAccountModalOpen(true)}
-            onOpenPaymentModal={(note) => setSelectedNoteForPayment(note)}
-            onOpenDetailsModal={(note) => setSelectedNoteForDetails(note)}
+            onOpenPaymentModal={(acc) => setSelectedAccountForPayment(acc)}
+            onOpenDetailsModal={(acc) => setSelectedAccountForDetails(acc)}
             onQuickSettle={handleQuickSettle}
-            onDeleteNote={handleDeleteNote}
+            onDeleteAccount={handleDeleteAccount}
           />
         )}
       </main>
@@ -267,22 +282,22 @@ export default function App() {
       <NewAccountModal
         isOpen={isNewAccountModalOpen}
         onClose={() => setIsNewAccountModalOpen(false)}
-        onSave={handleCreateNote}
+        onSave={handleCreateAccount}
         nextCodeSuggestion={getNextCodeSuggestion()}
       />
 
       <AddPaymentModal
-        isOpen={!!currentPaymentNote}
-        onClose={() => setSelectedNoteForPayment(null)}
-        note={currentPaymentNote}
+        isOpen={!!currentPaymentAccount}
+        onClose={() => setSelectedAccountForPayment(null)}
+        account={currentPaymentAccount}
         onAddPayment={handleAddPayment}
       />
 
       <PromissoryDetailsModal
-        isOpen={!!currentDetailsNote}
-        onClose={() => setSelectedNoteForDetails(null)}
-        note={currentDetailsNote}
-        onOpenPaymentModal={(note) => setSelectedNoteForPayment(note)}
+        isOpen={!!currentDetailsAccount}
+        onClose={() => setSelectedAccountForDetails(null)}
+        account={currentDetailsAccount}
+        onOpenPaymentModal={(acc) => setSelectedAccountForPayment(acc)}
         onQuickSettle={handleQuickSettle}
       />
     </div>

@@ -1,22 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { X, CheckCircle2, DollarSign, Calendar, CreditCard, FileText } from 'lucide-react';
-import { PromissoryNote, PaymentMethod } from '../types';
-import { formatCurrency, calculateNoteFinancials } from '../utils/storage';
+import React, { useState, useEffect, useMemo } from 'react';
+import { X, CheckCircle2, DollarSign, Calendar, ArrowRight } from 'lucide-react';
+import { DebtAccount, PaymentMethod } from '../types';
+import { formatCurrency, calculateAccountFinancials } from '../utils/storage';
 
 interface AddPaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  note: PromissoryNote | null;
+  account: DebtAccount | null;
   onAddPayment: (
-    noteId: string,
-    paymentData: { amount: number; date: string; method: PaymentMethod; note?: string; authCode?: string }
+    accountId: string,
+    paymentData: { amount: number; date: string; method: PaymentMethod; note?: string }
   ) => void;
 }
 
 export const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
   isOpen,
   onClose,
-  note,
+  account,
   onAddPayment,
 }) => {
   const todayStr = new Date().toISOString().split('T')[0];
@@ -25,27 +25,52 @@ export const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
   const [date, setDate] = useState<string>(todayStr);
   const [method, setMethod] = useState<PaymentMethod>('pix');
   const [noteText, setNoteText] = useState<string>('');
-  const [authCode, setAuthCode] = useState<string>('');
   const [error, setError] = useState<string>('');
 
   useEffect(() => {
-    if (note) {
+    if (account) {
       setAmount('');
       setDate(todayStr);
       setMethod('pix');
       setNoteText('');
-      setAuthCode('');
       setError('');
     }
-  }, [note, isOpen]);
+  }, [account, isOpen]);
 
-  if (!isOpen || !note) return null;
+  if (!isOpen || !account) return null;
 
-  const { paidAmount, remainingAmount } = calculateNoteFinancials(note);
+  const { totalPaid, totalRemaining } = calculateAccountFinancials(account);
 
-  const handleShortcut = (pct: number) => {
-    const val = (remainingAmount * pct).toFixed(2);
-    setAmount(val);
+  // Simulação de como o valor digitado será quebrado nas parcelas em aberto
+  const paymentSimulation = useMemo(() => {
+    const val = parseFloat(amount.replace(',', '.')) || 0;
+    if (val <= 0) return [];
+
+    let remaining = val;
+    const distribution: { installmentNumber: number; original: number; alreadyPaid: number; applied: number; fullySettled: boolean }[] = [];
+
+    account.installments.forEach((inst) => {
+      if (remaining <= 0.001 || inst.status === 'pago') return;
+      const owed = Math.round((inst.originalAmount - inst.paidAmount) * 100) / 100;
+      if (owed <= 0.001) return;
+
+      const toApply = Math.min(remaining, owed);
+      remaining = Math.round((remaining - toApply) * 100) / 100;
+
+      distribution.push({
+        installmentNumber: inst.number,
+        original: inst.originalAmount,
+        alreadyPaid: inst.paidAmount,
+        applied: toApply,
+        fullySettled: inst.paidAmount + toApply >= inst.originalAmount - 0.001,
+      });
+    });
+
+    return distribution;
+  }, [amount, account]);
+
+  const handleShortcut = (val: number) => {
+    setAmount(val.toFixed(2));
     setError('');
   };
 
@@ -58,19 +83,16 @@ export const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
       return;
     }
 
-    if (parsedAmount > remainingAmount + 0.01) {
-      setError(`O valor não pode ultrapassar o saldo restante de ${formatCurrency(remainingAmount)}.`);
+    if (parsedAmount > totalRemaining + 0.01) {
+      setError(`O valor não pode ultrapassar o saldo restante de ${formatCurrency(totalRemaining)}.`);
       return;
     }
 
-    const finalAuth = authCode.trim() || `PAG-${Date.now().toString().slice(-6)}`;
-
-    onAddPayment(note.id, {
+    onAddPayment(account.id, {
       amount: parsedAmount,
       date,
       method,
       note: noteText.trim() || undefined,
-      authCode: finalAuth,
     });
 
     onClose();
@@ -79,7 +101,7 @@ export const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in font-['Plus_Jakarta_Sans',sans-serif]">
       <div 
-        className="bg-[#161821] rounded-3xl w-full max-w-md shadow-2xl border border-[#262936] overflow-hidden flex flex-col"
+        className="bg-[#161821] rounded-3xl w-full max-w-md shadow-2xl border border-[#262936] overflow-hidden flex flex-col max-h-[92vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -91,13 +113,13 @@ export const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-bold text-base text-white">
-                  Adicionar Pagamento
+                  Registrar Pagamento
                 </h3>
                 <span className="text-[10px] font-mono text-[#11C76F] bg-[#11C76F]/10 border border-[#11C76F]/20 px-1.5 py-0.5 rounded">
-                  {note.code}
+                  {account.code}
                 </span>
               </div>
-              <p className="text-xs text-[#8B95A5]">Amortização ou quitação da conta</p>
+              <p className="text-xs text-[#8B95A5]">Abatimento inteligente das parcelas</p>
             </div>
           </div>
           <button
@@ -108,29 +130,29 @@ export const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
           </button>
         </div>
 
-        {/* Note Summary Card */}
+        {/* Account Info */}
         <div className="p-5 pb-3 bg-[#12141A] border-b border-[#262936]">
-          <div className="text-xs text-[#8B95A5] font-medium">Favorecido:</div>
-          <div className="text-sm font-bold text-white truncate mb-2">{note.creditor}</div>
+          <div className="text-xs text-[#8B95A5] font-medium">Nome da Pessoa:</div>
+          <div className="text-sm font-bold text-white truncate mb-2">{account.debtorName}</div>
 
           <div className="grid grid-cols-3 gap-2 bg-[#161821] p-3 rounded-2xl border border-[#262936] text-center">
             <div>
               <span className="text-[10px] uppercase font-bold text-[#8B95A5] block">Total</span>
-              <span className="text-xs font-semibold text-white">{formatCurrency(note.totalAmount)}</span>
+              <span className="text-xs font-semibold text-white">{formatCurrency(account.totalAmount)}</span>
             </div>
             <div>
               <span className="text-[10px] uppercase font-bold text-[#11C76F] block">Já Pago</span>
-              <span className="text-xs font-bold text-[#11C76F]">{formatCurrency(paidAmount)}</span>
+              <span className="text-xs font-bold text-[#11C76F]">{formatCurrency(totalPaid)}</span>
             </div>
             <div>
-              <span className="text-[10px] uppercase font-bold text-[#8B95A5] block">Saldo</span>
-              <span className="text-xs font-extrabold text-white">{formatCurrency(remainingAmount)}</span>
+              <span className="text-[10px] uppercase font-bold text-[#8B95A5] block">Restante</span>
+              <span className="text-xs font-extrabold text-white">{formatCurrency(totalRemaining)}</span>
             </div>
           </div>
         </div>
 
-        {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
           {error && (
             <div className="p-3 bg-[#241318] border border-[#FF3B30]/30 text-[#FF453A] text-xs font-semibold rounded-xl text-center">
               {error}
@@ -144,7 +166,7 @@ export const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
                 Valor do Pagamento (R$) *
               </label>
               <span className="text-xs font-semibold text-[#8B95A5]">
-                Máx: {formatCurrency(remainingAmount)}
+                Restante: {formatCurrency(totalRemaining)}
               </span>
             </div>
 
@@ -157,7 +179,7 @@ export const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
                 step="0.01"
                 required
                 min="0.01"
-                max={remainingAmount}
+                max={totalRemaining}
                 value={amount}
                 onChange={(e) => {
                   setAmount(e.target.value);
@@ -168,39 +190,66 @@ export const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
               />
             </div>
 
-            {/* Quick shortcuts */}
+            {/* Atalhos Rápidos */}
             <div className="flex items-center gap-1.5 mt-2">
+              {account.installmentValue > 0 && account.installmentValue < totalRemaining && (
+                <button
+                  type="button"
+                  onClick={() => handleShortcut(account.installmentValue)}
+                  className="flex-1 py-1.5 text-xs font-bold bg-[#1E212D] hover:bg-[#262936] border border-[#262936] text-[#8B95A5] hover:text-white rounded-lg cursor-pointer transition-colors"
+                >
+                  1 Parcela ({formatCurrency(account.installmentValue)})
+                </button>
+              )}
               <button
                 type="button"
-                onClick={() => handleShortcut(0.25)}
-                className="flex-1 py-1.5 text-xs font-bold bg-[#1E212D] hover:bg-[#262936] border border-[#262936] text-[#8B95A5] hover:text-white rounded-lg cursor-pointer transition-colors"
-              >
-                25%
-              </button>
-              <button
-                type="button"
-                onClick={() => handleShortcut(0.5)}
-                className="flex-1 py-1.5 text-xs font-bold bg-[#1E212D] hover:bg-[#262936] border border-[#262936] text-[#8B95A5] hover:text-white rounded-lg cursor-pointer transition-colors"
-              >
-                50%
-              </button>
-              <button
-                type="button"
-                onClick={() => handleShortcut(1)}
+                onClick={() => handleShortcut(totalRemaining)}
                 className="flex-2 py-1.5 text-xs font-extrabold bg-[#11C76F]/10 hover:bg-[#11C76F]/20 border border-[#11C76F]/30 text-[#11C76F] rounded-lg cursor-pointer transition-colors"
               >
-                Quitar Saldo ({formatCurrency(remainingAmount)})
+                Quitar Tudo ({formatCurrency(totalRemaining)})
               </button>
             </div>
           </div>
 
-          {/* Método de Pagamento */}
+          {/* SIMULAÇÃO EM TEMPO REAL: COMO O VALOR SERÁ DISTRIBUÍDO NAS PARCELAS */}
+          {paymentSimulation.length > 0 && (
+            <div className="bg-[#12141A] p-3.5 rounded-2xl border border-[#11C76F]/30 space-y-2">
+              <span className="text-[11px] font-bold text-[#11C76F] uppercase tracking-wider block">
+                Distribuição Automática nas Parcelas:
+              </span>
+              <div className="space-y-1.5">
+                {paymentSimulation.map((sim) => (
+                  <div key={sim.installmentNumber} className="flex items-center justify-between text-xs bg-[#161821] p-2 rounded-xl border border-[#262936]">
+                    <span className="text-white font-medium">
+                      Parcela {sim.installmentNumber}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[#11C76F] font-bold">
+                        +{formatCurrency(sim.applied)}
+                      </span>
+                      {sim.fullySettled ? (
+                        <span className="text-[9px] font-extrabold uppercase bg-[#11C76F]/20 text-[#11C76F] px-1.5 py-0.5 rounded">
+                          Quitada
+                        </span>
+                      ) : (
+                        <span className="text-[9px] font-extrabold uppercase bg-[#FF9500]/20 text-[#FF9500] px-1.5 py-0.5 rounded">
+                          Parcial
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Forma de Pagamento */}
           <div>
             <label className="block text-xs font-semibold text-[#8B95A5] mb-1">
               Forma de Pagamento
             </label>
             <div className="grid grid-cols-3 gap-2">
-              {(['pix', 'transferencia', 'ted_doc', 'dinheiro', 'cartao', 'boleto'] as PaymentMethod[]).map((m) => (
+              {(['pix', 'dinheiro', 'cartao', 'transferencia', 'boleto'] as PaymentMethod[]).map((m) => (
                 <button
                   type="button"
                   key={m}
@@ -211,7 +260,7 @@ export const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
                       : 'bg-[#12141A] text-[#8B95A5] hover:text-white border border-[#262936]'
                   }`}
                 >
-                  {m === 'transferencia' ? 'Transf.' : m === 'ted_doc' ? 'TED' : m}
+                  {m === 'transferencia' ? 'Transf.' : m}
                 </button>
               ))}
             </div>
@@ -234,16 +283,16 @@ export const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
             </div>
           </div>
 
-          {/* Recibo / Observação */}
+          {/* Observação */}
           <div>
             <label className="block text-xs font-semibold text-[#8B95A5] mb-1">
-              Comprovante / Observação (Opcional)
+              Observação (Opcional)
             </label>
             <input
               type="text"
               value={noteText}
               onChange={(e) => setNoteText(e.target.value)}
-              placeholder="Ex: Parcela paga via Pix PicPay"
+              placeholder="Ex: Pagamento parcial entregue em mãos"
               className="w-full px-3.5 py-2.5 bg-[#12141A] border border-[#262936] rounded-xl text-xs sm:text-sm text-white placeholder-[#5F6876] focus:outline-none focus:border-[#11C76F]"
             />
           </div>
