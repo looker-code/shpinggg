@@ -375,6 +375,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                     </button>
                   </div>
 
+                  <div className="p-3 bg-[#12141A] rounded-xl border border-[#262936] text-xs text-[#8B95A5] leading-relaxed">
+                    ✨ <strong className="text-white">Entrada rápida:</strong> Você pode clicar no <span className="text-[#11C76F] font-bold">link do e-mail</span> para entrar direto, ou digitar o código de 6 dígitos abaixo:
+                  </div>
+
                   <div>
                     <label className="block text-xs font-semibold text-[#8B95A5] mb-1.5">
                       Código de 6 dígitos recebido no e-mail

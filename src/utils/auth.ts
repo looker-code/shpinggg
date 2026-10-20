@@ -74,10 +74,12 @@ export const sendEmailOtp = async (
     try {
       const client = getSupabaseClient();
       if (client) {
+        const redirectUrl = typeof window !== 'undefined' ? window.location.origin : undefined;
         const { error } = await client.auth.signInWithOtp({
           email: cleanEmail,
           options: {
             shouldCreateUser: true,
+            emailRedirectTo: redirectUrl,
             data: name?.trim() ? { name: name.trim() } : undefined,
           },
         });
@@ -86,7 +88,7 @@ export const sendEmailOtp = async (
           return {
             success: true,
             isRealEmail: true,
-            message: `Código de 6 dígitos enviado para ${cleanEmail}! Verifique sua caixa de entrada e spam.`,
+            message: `E-mail enviado para ${cleanEmail}! Você pode clicar no link ou digitar o código abaixo.`,
           };
         } else {
           console.error('[EnablePay] Supabase email OTP error:', error.message);

@@ -14,11 +14,12 @@ import {
 } from './utils/storage';
 import {
   isSupabaseConfigured,
+  getSupabaseClient,
   fetchAccountsFromSupabase,
   saveAccountToSupabase,
   deleteAccountFromSupabase
 } from './utils/supabase';
-import { getCurrentUser, logoutCurrentUser, UserProfile } from './utils/auth';
+import { getCurrentUser, saveCurrentUser, logoutCurrentUser, UserProfile } from './utils/auth';
 import { LoginScreen } from './components/LoginScreen';
 import { Header } from './components/Header';
 import { DashboardTab } from './components/DashboardTab';
@@ -70,6 +71,48 @@ export default function App() {
         .catch((err) => {
           console.error('[EnablePay] Erro ao sincronizar do Supabase:', err);
         });
+
+      // Detecção automática de login via Link Mágico do Supabase (URL redirect)
+      const client = getSupabaseClient();
+      if (client) {
+        client.auth.getSession().then(({ data: { session } }) => {
+          if (session?.user) {
+            const profile: UserProfile = {
+              id: session.user.id,
+              name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Usuário',
+              email: session.user.email,
+              authMethod: 'email_otp',
+              createdAt: session.user.created_at || new Date().toISOString(),
+            };
+            saveCurrentUser(profile);
+            setCurrentUser(profile);
+            setIsAuthenticated(true);
+          }
+        });
+
+        const { data: authListener } = client.auth.onAuthStateChange((event, session) => {
+          if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.user) {
+            const profile: UserProfile = {
+              id: session.user.id,
+              name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Usuário',
+              email: session.user.email,
+              authMethod: 'email_otp',
+              createdAt: session.user.created_at || new Date().toISOString(),
+            };
+            saveCurrentUser(profile);
+            setCurrentUser(profile);
+            setIsAuthenticated(true);
+            showToast(`Acesso autorizado! Bem-vindo, ${profile.name}.`);
+            if (window.location.hash || window.location.search.includes('code=')) {
+              window.history.replaceState(null, '', window.location.pathname);
+            }
+          }
+        });
+
+        return () => {
+          authListener?.subscription?.unsubscribe();
+        };
+      }
     }
   }, []);
 
