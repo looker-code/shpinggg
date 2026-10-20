@@ -12,6 +12,12 @@ import {
   formatCurrency,
   isSeedAccount
 } from './utils/storage';
+import {
+  isSupabaseConfigured,
+  fetchAccountsFromSupabase,
+  saveAccountToSupabase,
+  deleteAccountFromSupabase
+} from './utils/supabase';
 import { LoginScreen } from './components/LoginScreen';
 import { Header } from './components/Header';
 import { DashboardTab } from './components/DashboardTab';
@@ -19,6 +25,7 @@ import { AccountsPayableTab } from './components/AccountsPayableTab';
 import { NewAccountModal } from './components/NewAccountModal';
 import { AddPaymentModal } from './components/AddPaymentModal';
 import { PromissoryDetailsModal } from './components/PromissoryDetailsModal';
+import { SupabaseConfigModal } from './components/SupabaseConfigModal';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
@@ -38,12 +45,31 @@ export default function App() {
   const [selectedAccountForPayment, setSelectedAccountForPayment] = useState<DebtAccount | null>(null);
   const [selectedAccountForDetails, setSelectedAccountForDetails] = useState<DebtAccount | null>(null);
   const [isGlobalPaymentModalOpen, setIsGlobalPaymentModalOpen] = useState(false);
+  const [isDbConfigOpen, setIsDbConfigOpen] = useState(false);
+  const [isDbConnected, setIsDbConnected] = useState<boolean>(() => isSupabaseConfigured());
 
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'warn' } | null>(null);
 
   useEffect(() => {
     saveAccounts(accounts);
   }, [accounts]);
+
+  // Sincronização automática com Supabase na inicialização
+  useEffect(() => {
+    if (isSupabaseConfigured()) {
+      setIsDbConnected(true);
+      fetchAccountsFromSupabase()
+        .then((dbAccounts) => {
+          if (Array.isArray(dbAccounts)) {
+            setAccounts(dbAccounts);
+            saveAccounts(dbAccounts);
+          }
+        })
+        .catch((err) => {
+          console.error('Erro ao buscar dados do Supabase:', err);
+        });
+    }
+  }, []);
 
   const showToast = (message: string, type: 'success' | 'info' | 'warn' = 'success') => {
     setToast({ message, type });
@@ -102,6 +128,9 @@ export default function App() {
     };
 
     setAccounts((prev) => [newAccount, ...prev]);
+    if (isSupabaseConfigured()) {
+      saveAccountToSupabase(newAccount).catch((err) => console.error(err));
+    }
     showToast(`Conta de ${newAccount.debtorName} cadastrada em ${generated.length}x!`);
   };
 
@@ -154,12 +183,18 @@ export default function App() {
           showToast(`Amortização de ${formatCurrency(paymentData.amount)} abatida das últimas parcelas!`);
         }
 
-        return {
+        const updatedAccount = {
           ...acc,
           installments: updatedInstallments,
           payments: updatedPayments,
-          status: isSettled ? 'quitado' : 'parcial',
+          status: isSettled ? ('quitado' as const) : ('parcial' as const),
         };
+
+        if (isSupabaseConfigured()) {
+          saveAccountToSupabase(updatedAccount).catch((err) => console.error(err));
+        }
+
+        return updatedAccount;
       })
     );
   };
@@ -176,7 +211,11 @@ export default function App() {
           payments: remainingPayments,
         };
 
-        return recalculateAccountFromPayments(accountWithFiltered);
+        const recalculated = recalculateAccountFromPayments(accountWithFiltered);
+        if (isSupabaseConfigured()) {
+          saveAccountToSupabase(recalculated).catch((err) => console.error(err));
+        }
+        return recalculated;
       })
     );
     showToast('Pagamento removido e parcelas recalculadas.');
@@ -192,7 +231,11 @@ export default function App() {
           return acc;
         }
 
-        return recalculateAccountFromPayments(acc);
+        const recalculated = recalculateAccountFromPayments(acc);
+        if (isSupabaseConfigured()) {
+          saveAccountToSupabase(recalculated).catch((err) => console.error(err));
+        }
+        return recalculated;
       })
     );
     showToast('Amortizações reorganizadas: abatimento aplicado nas últimas parcelas!');
@@ -233,12 +276,16 @@ export default function App() {
     setAccounts((prev) =>
       prev.map((a) => {
         if (a.id !== account.id) return a;
-        return {
+        const updated = {
           ...a,
           installments: updatedInstallments,
           payments: [...(a.payments || []), settlementPayment],
-          status: 'quitado',
+          status: 'quitado' as const,
         };
+        if (isSupabaseConfigured()) {
+          saveAccountToSupabase(updated).catch((err) => console.error(err));
+        }
+        return updated;
       })
     );
 
@@ -261,6 +308,9 @@ export default function App() {
 
     if (window.confirm(`Tem certeza que deseja excluir a conta de ${target.debtorName}?`)) {
       setAccounts((prev) => prev.filter((a) => a.id !== id));
+      if (isSupabaseConfigured()) {
+        deleteAccountFromSupabase(id).catch((err) => console.error(err));
+      }
       showToast(`Conta de ${target.debtorName} excluída.`);
     }
   };
@@ -307,6 +357,8 @@ export default function App() {
         onLogout={handleLogout}
         pendingCount={summary.openCount + summary.partialCount}
         overdueCount={0}
+        isDbConnected={isDbConnected}
+        onOpenDbConfig={() => setIsDbConfigOpen(true)}
       />
 
       {/* Main Container */}
@@ -376,6 +428,25 @@ export default function App() {
           onQuickSettle={handleQuickSettle}
           onDeletePayment={handleDeletePayment}
           onRealignAmortization={handleRealignAmortization}
+        />
+      )}
+
+      {isDbConfigOpen && (
+        <SupabaseConfigModal
+          isOpen={true}
+          onClose={() => setIsDbConfigOpen(false)}
+          onConnected={() => {
+            setIsDbConnected(true);
+            fetchAccountsFromSupabase()
+              .then((data) => {
+                if (Array.isArray(data)) {
+                  setAccounts(data);
+                  saveAccounts(data);
+                }
+                showToast('Banco Supabase conectado e sincronizado!');
+              })
+              .catch((err) => console.error(err));
+          }}
         />
       )}
     </div>

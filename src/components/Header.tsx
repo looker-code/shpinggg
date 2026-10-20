@@ -7,7 +7,8 @@ import {
   LogOut, 
   Bell,
   User,
-  ChevronDown
+  ChevronDown,
+  Database
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -18,6 +19,8 @@ interface HeaderProps {
   onLogout: () => void;
   pendingCount: number;
   overdueCount: number;
+  isDbConnected?: boolean;
+  onOpenDbConfig?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -28,6 +31,8 @@ export const Header: React.FC<HeaderProps> = ({
   onLogout,
   pendingCount,
   overdueCount,
+  isDbConnected = false,
+  onOpenDbConfig,
 }) => {
   return (
     <header className="sticky top-0 z-30 bg-[#0D0E12]/95 backdrop-blur-md border-b border-[#262936]">
@@ -111,6 +116,25 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="hidden sm:inline">Nova Conta</span>
               <span className="sm:hidden">Conta</span>
             </button>
+
+            {/* Supabase Cloud DB Indicator / Button */}
+            {onOpenDbConfig && (
+              <button
+                onClick={onOpenDbConfig}
+                className={`px-3 py-2 sm:py-2.5 rounded-xl border flex items-center gap-1.5 transition-all cursor-pointer text-xs font-bold ${
+                  isDbConnected
+                    ? 'bg-[#11C76F]/10 border-[#11C76F]/30 text-[#11C76F] hover:bg-[#11C76F]/20'
+                    : 'bg-[#FF9500]/10 border-[#FF9500]/30 text-[#FF9500] hover:bg-[#FF9500]/20'
+                }`}
+                title={isDbConnected ? 'Banco Supabase Conectado (Nuvem Ativa)' : 'Conectar Banco de Dados Supabase'}
+              >
+                <Database className="w-4 h-4 shrink-0" />
+                <span className="hidden md:inline">
+                  {isDbConnected ? 'Banco Conectado' : 'Conectar Banco'}
+                </span>
+                <span className={`w-2 h-2 rounded-full shrink-0 ${isDbConnected ? 'bg-[#11C76F] shadow-[0_0_8px_rgba(17,199,111,0.8)]' : 'bg-[#FF9500] animate-pulse'}`} />
+              </button>
+            )}
 
             {/* User Profile Pill & Logout */}
             <div className="flex items-center gap-2 pl-2 border-l border-[#262936]">
