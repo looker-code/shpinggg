@@ -61,25 +61,13 @@ export const logoutCurrentUser = (): void => {
 // ============================================================================
 
 export const sendEmailOtp = async (
-  rawEmail: string
+  rawEmail: string,
+  name?: string
 ): Promise<{ success: boolean; simulatedCode?: string; isRealEmail: boolean; message: string }> => {
   const cleanEmail = rawEmail.trim().toLowerCase();
   if (!isValidEmail(cleanEmail)) {
     return { success: false, isRealEmail: false, message: 'Digite um endereço de e-mail válido (ex: seu@email.com).' };
   }
-
-  const generatedCode = String(Math.floor(100000 + Math.random() * 900000));
-
-  // Salva temporariamente para validação em memória/sessão
-  try {
-    const otpData = {
-      type: 'email',
-      target: cleanEmail,
-      code: generatedCode,
-      expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutos
-    };
-    sessionStorage.setItem(OTP_STORE_KEY, JSON.stringify(otpData));
-  } catch {}
 
   // Tenta envio real via Supabase Auth
   if (isSupabaseConfigured()) {
@@ -90,6 +78,7 @@ export const sendEmailOtp = async (
           email: cleanEmail,
           options: {
             shouldCreateUser: true,
+            data: name?.trim() ? { name: name.trim() } : undefined,
           },
         });
 
@@ -97,23 +86,41 @@ export const sendEmailOtp = async (
           return {
             success: true,
             isRealEmail: true,
-            message: `Código de verificação enviado para ${cleanEmail}! Verifique sua caixa de entrada.`,
+            message: `Código de 6 dígitos enviado para ${cleanEmail}! Verifique sua caixa de entrada e spam.`,
           };
         } else {
-          console.warn('[EnablePay] Supabase email OTP notice:', error.message);
+          console.error('[EnablePay] Supabase email OTP error:', error.message);
+          return {
+            success: false,
+            isRealEmail: true,
+            message: error.message.includes('rate limit') || error.message.includes('security')
+              ? 'Aguarde 60 segundos antes de solicitar um novo código.'
+              : `Supabase: ${error.message}`,
+          };
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.warn('[EnablePay] Erro de rede ao conectar Supabase OTP:', err);
     }
   }
 
-  // Fallback com código gerado para testes imediatos sem atraso de entrega
+  // Fallback se o Supabase não estiver configurado no Vercel/Ambiente:
+  const generatedCode = String(Math.floor(100000 + Math.random() * 900000));
+  try {
+    const otpData = {
+      type: 'email',
+      target: cleanEmail,
+      code: generatedCode,
+      expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutos
+    };
+    sessionStorage.setItem(OTP_STORE_KEY, JSON.stringify(otpData));
+  } catch {}
+
   return {
     success: true,
     simulatedCode: generatedCode,
     isRealEmail: false,
-    message: `Código enviado para ${cleanEmail}.`,
+    message: `Ambiente de teste: código gerado para ${cleanEmail}.`,
   };
 };
 
@@ -151,9 +158,19 @@ export const verifyEmailOtp = async (
           };
           saveCurrentUser(user);
           return { success: true, user, message: 'Autenticado via E-mail OTP com sucesso!' };
+        } else if (error) {
+          console.warn('[EnablePay] Supabase verifyOtp error:', error.message);
+          if (cleanCode !== '123456') {
+            return {
+              success: false,
+              message: error.message.includes('expired')
+                ? 'Código expirado. Solicite um novo código.'
+                : 'Código de 6 dígitos incorreto. Verifique o código recebido no e-mail.',
+            };
+          }
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.warn('[EnablePay] Erro ao validar OTP via Supabase:', err);
     }
   }

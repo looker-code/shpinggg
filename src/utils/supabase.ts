@@ -48,7 +48,8 @@ export const getSupabaseClient = (): SupabaseClient | null => {
   try {
     clientInstance = createClient(config.url, config.key, {
       auth: {
-        persistSession: false,
+        persistSession: true,
+        autoRefreshToken: true,
       },
     });
     lastUrl = config.url;

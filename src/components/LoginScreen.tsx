@@ -78,7 +78,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
 
     setIsLoading(true);
     try {
-      const res = await sendEmailOtp(cleanEmail);
+      const res = await sendEmailOtp(cleanEmail, authMode === 'cadastro' ? name : undefined);
       setIsLoading(false);
 
       if (res.success) {
