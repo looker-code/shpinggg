@@ -382,7 +382,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
         {/* Rodapé de Segurança */}
         <div className="flex items-center justify-center gap-2 text-xs text-[#8B95A5] mt-6">
           <ShieldCheck className="w-4 h-4 text-[#11C76F]" />
-          <span>EnablePay • Controle de promissórias e amortizações</span>
+          <span>EnablePay • Controle de vendas e clientes facilitado.</span>
         </div>
       </div>
     </div>
