@@ -308,129 +308,71 @@ export const formatDate = (dateString?: string): string => {
   return dateString;
 };
 
-// --- Seed Data com contas realistas ---
-export const SEED_ACCOUNTS: DebtAccount[] = [
-  {
-    id: 'acc-1',
-    code: 'CT-001',
-    debtorName: 'Marcos Oliveira',
-    debts: [
-      { id: 'd1a', name: 'Material de construção', amount: 1200 },
-      { id: 'd1b', name: 'Serviço de pintura', amount: 800 },
-    ],
-    totalAmount: 2000,
-    installmentValue: 500,
-    installments: [
-      { id: 'i1a', number: 1, originalAmount: 500, paidAmount: 500, status: 'pago', paidAt: '2026-09-15T14:00:00Z' },
-      { id: 'i1b', number: 2, originalAmount: 500, paidAmount: 300, status: 'parcial' },
-      { id: 'i1c', number: 3, originalAmount: 500, paidAmount: 0, status: 'pendente' },
-      { id: 'i1d', number: 4, originalAmount: 500, paidAmount: 0, status: 'pendente' },
-    ],
-    payments: [
-      { id: 'p1a', amount: 500, date: '2026-09-15', method: 'pix', note: 'Primeira parcela', registeredAt: '2026-09-15T14:00:00Z' },
-      { id: 'p1b', amount: 300, date: '2026-10-05', method: 'dinheiro', note: 'Pagamento parcial P2', registeredAt: '2026-10-05T10:00:00Z' },
-    ],
-    status: 'parcial',
-    createdAt: '2026-09-01T08:00:00Z',
-    notes: 'Reforma do ponto comercial',
-  },
-  {
-    id: 'acc-2',
-    code: 'CT-002',
-    debtorName: 'Ana Carolina Silva',
-    debts: [
-      { id: 'd2a', name: 'Compra de tecidos', amount: 950 },
-      { id: 'd2b', name: 'Aviamentos e acessórios', amount: 350 },
-      { id: 'd2c', name: 'Frete de mercadoria', amount: 200 },
-    ],
-    totalAmount: 1500,
-    installmentValue: 500,
-    installments: [
-      { id: 'i2a', number: 1, originalAmount: 500, paidAmount: 0, status: 'pendente' },
-      { id: 'i2b', number: 2, originalAmount: 500, paidAmount: 0, status: 'pendente' },
-      { id: 'i2c', number: 3, originalAmount: 500, paidAmount: 0, status: 'pendente' },
-    ],
-    payments: [],
-    status: 'em_aberto',
-    createdAt: '2026-10-10T12:00:00Z',
-  },
-  {
-    id: 'acc-3',
-    code: 'CT-003',
-    debtorName: 'João Pedro Santos',
-    debts: [
-      { id: 'd3a', name: 'Peças automotivas', amount: 780 },
-    ],
-    totalAmount: 780,
-    installmentValue: 400,
-    installments: [
-      { id: 'i3a', number: 1, originalAmount: 400, paidAmount: 400, status: 'pago', paidAt: '2026-09-20T11:00:00Z' },
-      { id: 'i3b', number: 2, originalAmount: 380, paidAmount: 380, status: 'pago', paidAt: '2026-10-15T16:00:00Z' },
-    ],
-    payments: [
-      { id: 'p3a', amount: 400, date: '2026-09-20', method: 'pix', note: 'Parcela 1', registeredAt: '2026-09-20T11:00:00Z' },
-      { id: 'p3b', amount: 380, date: '2026-10-15', method: 'transferencia', note: 'Quitação final', registeredAt: '2026-10-15T16:00:00Z' },
-    ],
-    status: 'quitado',
-    createdAt: '2026-09-05T09:00:00Z',
-  },
-];
+// --- Identificador de contas de demonstração antigas ---
+export const isSeedAccount = (acc: any): boolean => {
+  if (!acc) return false;
+  return (
+    acc.id === 'acc-1' ||
+    acc.id === 'acc-2' ||
+    acc.id === 'acc-3' ||
+    acc.debtorName === 'Marcos Oliveira' ||
+    acc.debtorName === 'Ana Carolina Silva' ||
+    acc.debtorName === 'João Pedro Santos'
+  );
+};
+
+// --- Seed Data limpa (não insere dados aleatórios) ---
+export const SEED_ACCOUNTS: DebtAccount[] = [];
 
 // --- Persistência Segura ---
 export const loadAccounts = (): DebtAccount[] => {
-  // 1. Tenta carregar pela chave atual do EnablePay
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
+  const tryParseAndClean = (raw: string | null): DebtAccount[] | null => {
+    if (!raw) return null;
+    try {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed.map(sanitizeAccount);
+        // Remove quaisquer contas de exemplo que possam ter sido injetadas anteriormente
+        const cleaned = parsed.filter((a) => !isSeedAccount(a));
+        if (cleaned.length > 0) {
+          return cleaned.map(sanitizeAccount);
+        }
+        // Se a lista continha unicamente as contas de exemplo, limpa do storage
+        return [];
       }
-    }
-  } catch {}
+    } catch {}
+    return null;
+  };
+
+  // 1. Tenta carregar pela chave atual do EnablePay
+  const current = tryParseAndClean(localStorage.getItem(STORAGE_KEY));
+  if (current !== null) {
+    saveAccounts(current);
+    return current;
+  }
 
   // 2. Tenta migrar da chave v4 (PromissóriaPay)
-  try {
-    const rawV4 = localStorage.getItem(LEGACY_V4_KEY);
-    if (rawV4) {
-      const parsedV4 = JSON.parse(rawV4);
-      if (Array.isArray(parsedV4) && parsedV4.length > 0) {
-        const sanitized = parsedV4.map(sanitizeAccount);
-        saveAccounts(sanitized);
-        return sanitized;
-      }
-    }
-  } catch {}
+  const legacyV4 = tryParseAndClean(localStorage.getItem(LEGACY_V4_KEY));
+  if (legacyV4 !== null) {
+    saveAccounts(legacyV4);
+    return legacyV4;
+  }
   
   // 3. Tenta migrar da chave v3 caso exista
-  try {
-    const rawV3 = localStorage.getItem('promissory_pay_accounts_v3');
-    if (rawV3) {
-      const parsedV3 = JSON.parse(rawV3);
-      if (Array.isArray(parsedV3) && parsedV3.length > 0) {
-        const sanitized = parsedV3.map(sanitizeAccount);
-        saveAccounts(sanitized);
-        return sanitized;
-      }
-    }
-  } catch {}
+  const legacyV3 = tryParseAndClean(localStorage.getItem('promissory_pay_accounts_v3'));
+  if (legacyV3 !== null) {
+    saveAccounts(legacyV3);
+    return legacyV3;
+  }
 
   // 4. Tenta migrar da base antiga de promissórias se existir
-  try {
-    const rawLegacy = localStorage.getItem('promissory_notes_db');
-    if (rawLegacy) {
-      const parsedLegacy = JSON.parse(rawLegacy);
-      if (Array.isArray(parsedLegacy) && parsedLegacy.length > 0) {
-        const sanitized = parsedLegacy.map(sanitizeAccount);
-        saveAccounts(sanitized);
-        return sanitized;
-      }
-    }
-  } catch {}
+  const legacyNotes = tryParseAndClean(localStorage.getItem('promissory_notes_db'));
+  if (legacyNotes !== null) {
+    saveAccounts(legacyNotes);
+    return legacyNotes;
+  }
 
-  const defaultList = SEED_ACCOUNTS.map(sanitizeAccount);
-  saveAccounts(defaultList);
-  return defaultList;
+  saveAccounts([]);
+  return [];
 };
 
 export const saveAccounts = (accounts: DebtAccount[]): void => {
