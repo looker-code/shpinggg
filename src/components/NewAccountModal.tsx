@@ -89,7 +89,7 @@ export const NewAccountModal: React.FC<NewAccountModalProps> = ({
     e.preventDefault();
 
     if (!debtorName.trim()) {
-      setError('Informe o nome da pessoa da conta.');
+      setError('Informe o nome do cliente.');
       return;
     }
 
@@ -144,9 +144,9 @@ export const NewAccountModal: React.FC<NewAccountModalProps> = ({
             </div>
             <div>
               <h3 className="font-bold text-base text-white">
-                Adicionar Conta / Dívida
+                Adicionar Cliente
               </h3>
-              <p className="text-xs text-[#8B95A5]">Cadastre os valores em aberto e configure a negociação</p>
+              <p className="text-xs text-[#8B95A5]">Cadastre o cliente, valores e configure as parcelas a receber</p>
             </div>
           </div>
           <button
@@ -165,10 +165,10 @@ export const NewAccountModal: React.FC<NewAccountModalProps> = ({
             </div>
           )}
 
-          {/* 1. Nome da pessoa da conta */}
+          {/* 1. Nome do cliente */}
           <div>
             <label className="block text-xs font-bold text-white uppercase tracking-wider mb-1.5">
-              Nome da Pessoa da Conta *
+              Nome do Cliente *
             </label>
             <div className="relative">
               <User className="w-4 h-4 text-[#8B95A5] absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -369,7 +369,7 @@ export const NewAccountModal: React.FC<NewAccountModalProps> = ({
               className="px-5 py-2.5 bg-[#11C76F] hover:bg-[#0EAD60] text-[#0D0E12] text-xs font-extrabold rounded-xl shadow-[0_2px_12px_rgba(17,199,111,0.2)] transition-all cursor-pointer flex items-center gap-1.5"
             >
               <Plus className="w-4 h-4 stroke-[2.5]" />
-              <span>Cadastrar Conta & Dívida</span>
+              <span>Cadastrar Cliente</span>
             </button>
           </div>
         </form>

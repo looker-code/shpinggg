@@ -116,7 +116,7 @@ export const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
                 }}
                 className="px-5 py-2.5 bg-[#11C76F] hover:bg-[#0EAD60] text-[#0D0E12] font-extrabold text-xs rounded-xl shadow-md transition-all cursor-pointer"
               >
-                Cadastrar Nova Conta
+                Cadastrar Novo Cliente
               </button>
             )}
           </div>
@@ -270,7 +270,7 @@ export const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
         {accounts.length > 1 && (
           <div className="px-5 sm:px-6 pt-3 pb-2.5 bg-[#14161F] border-b border-[#262936]">
             <label className="text-[11px] font-bold text-[#8B95A5] block mb-1.5 flex items-center justify-between">
-              <span>Selecione a Pessoa / Conta para Quitar:</span>
+              <span>Selecione o Cliente / Conta a Receber:</span>
               <span className="text-[#11C76F] font-semibold">{accounts.length} contas cadastradas</span>
             </label>
             <select

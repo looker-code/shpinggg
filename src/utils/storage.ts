@@ -324,6 +324,84 @@ export const isSeedAccount = (acc: any): boolean => {
 // --- Seed Data limpa (não insere dados aleatórios) ---
 export const SEED_ACCOUNTS: DebtAccount[] = [];
 
+// --- Cliente Fictício de Exemplo para a Conta Admin Demo ---
+export const getAdminDemoAccount = (): DebtAccount => {
+  const installments: Installment[] = [
+    {
+      id: 'inst_demo_1',
+      number: 1,
+      originalAmount: 500,
+      paidAmount: 0,
+      status: 'pendente',
+    },
+    {
+      id: 'inst_demo_2',
+      number: 2,
+      originalAmount: 500,
+      paidAmount: 0,
+      status: 'pendente',
+    },
+    {
+      id: 'inst_demo_3',
+      number: 3,
+      originalAmount: 500,
+      paidAmount: 0,
+      status: 'pendente',
+    },
+    {
+      id: 'inst_demo_4',
+      number: 4,
+      originalAmount: 500,
+      paidAmount: 0,
+      status: 'pendente',
+    },
+    {
+      id: 'inst_demo_5',
+      number: 5,
+      originalAmount: 500,
+      paidAmount: 200,
+      status: 'parcial',
+    },
+    {
+      id: 'inst_demo_6',
+      number: 6,
+      originalAmount: 500,
+      paidAmount: 500,
+      status: 'pago',
+      paidAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    },
+  ];
+
+  return {
+    id: 'demo_acc_admin_1',
+    code: 'CT-001',
+    debtorName: 'Marcos Silva (Cliente Exemplo)',
+    debts: [
+      { id: 'd_demo_1', name: 'Venda de Mercadorias / Produtos', amount: 3000 },
+    ],
+    totalAmount: 3000,
+    installmentValue: 500,
+    installments,
+    payments: [
+      {
+        id: 'pay_demo_1',
+        amount: 700,
+        date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        method: 'pix',
+        note: 'Amortização de exemplo abatendo as últimas parcelas (Parcela 6 e parte da 5)',
+        registeredAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+        distribution: [
+          { installmentNumber: 6, amount: 500 },
+          { installmentNumber: 5, amount: 200 },
+        ],
+      },
+    ],
+    status: 'parcial',
+    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+    notes: 'Exemplo demonstrativo: 6 parcelas de R$ 500,00 com amortização de R$ 700,00 abatida das últimas parcelas.',
+  };
+};
+
 // --- Persistência Segura ---
 export const loadAccounts = (): DebtAccount[] => {
   const tryParseAndClean = (raw: string | null): DebtAccount[] | null => {

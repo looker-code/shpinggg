@@ -10,7 +10,8 @@ import {
   distributePayment,
   recalculateAccountFromPayments,
   formatCurrency,
-  isSeedAccount
+  isSeedAccount,
+  getAdminDemoAccount
 } from './utils/storage';
 import {
   isSupabaseConfigured,
@@ -43,7 +44,12 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'inicio' | 'a-pagar'>('inicio');
 
   const [accounts, setAccounts] = useState<DebtAccount[]>(() => {
-    return loadAccounts();
+    const loaded = loadAccounts();
+    const user = getCurrentUser();
+    if (user?.username === 'admin' && loaded.length === 0) {
+      return [getAdminDemoAccount()];
+    }
+    return loaded;
   });
 
   const [isNewAccountModalOpen, setIsNewAccountModalOpen] = useState(false);
@@ -90,7 +96,13 @@ export default function App() {
     }
     setIsAuthenticated(true);
     if (user?.username === 'admin') {
-      showToast('Acesso administrativo ativado. Dados mantidos apenas no navegador local.', 'info');
+      const current = loadAccounts();
+      if (current.length === 0) {
+        const demo = [getAdminDemoAccount()];
+        setAccounts(demo);
+        saveAccounts(demo);
+      }
+      showToast('Acesso administrativo ativado. Cliente exemplo carregado localmente.', 'info');
     } else {
       showToast(`Acesso autorizado! Bem-vindo, ${user?.name || 'Administrador'}.`);
     }

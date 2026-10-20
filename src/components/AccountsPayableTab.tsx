@@ -106,10 +106,10 @@ export const AccountsPayableTab: React.FC<AccountsPayableTabProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-extrabold text-white tracking-tight">
-            Contas a Pagar por Pessoa
+            Contas a Receber
           </h2>
           <p className="text-xs sm:text-sm text-[#8B95A5] mt-0.5">
-            Gerencie dívidas por pessoa, acompanhe as parcelas em aberto e registre amortizações
+            Gerencie clientes, acompanhe as parcelas a receber e registre amortizações
           </p>
         </div>
 
@@ -248,7 +248,7 @@ export const AccountsPayableTab: React.FC<AccountsPayableTabProps> = ({
               onClick={onOpenNewAccount}
               className="px-4 py-2 text-xs font-bold text-[#0D0E12] bg-[#11C76F] hover:bg-[#0EAD60] rounded-xl cursor-pointer"
             >
-              Adicionar Conta
+              Adicionar Cliente
             </button>
           </div>
         </div>

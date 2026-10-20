@@ -106,7 +106,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
             Enable<span className="text-[#11C76F]">Pay</span>
           </h1>
           <p className="text-xs text-[#8B95A5] mt-1 font-medium text-center">
-            Gestão inteligente de promissórias, amortizações e títulos a pagar
+            Gestão inteligente de vendas, contas a receber e clientes
           </p>
         </div>
 

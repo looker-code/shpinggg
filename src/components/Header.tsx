@@ -76,7 +76,7 @@ export const Header: React.FC<HeaderProps> = ({
               }`}
             >
               <FileText className="w-4 h-4" />
-              <span>A Pagar</span>
+              <span>A Receber</span>
               {(pendingCount > 0 || overdueCount > 0) && (
                 <span
                   className={`ml-1 px-1.5 py-0.2 text-[10px] font-bold rounded-full ${
@@ -108,11 +108,11 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={onOpenNewAccount}
               className="bg-[#1E212D] hover:bg-[#262936] text-white font-bold text-xs sm:text-sm px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-xl border border-[#262936] flex items-center gap-1.5 transition-all active:scale-[0.98] cursor-pointer"
-              title="Cadastrar nova conta ou promissória"
+              title="Cadastrar novo cliente"
             >
               <Plus className="w-4 h-4 stroke-[2.5]" />
-              <span className="hidden sm:inline">Nova Conta</span>
-              <span className="sm:hidden">Conta</span>
+              <span className="hidden sm:inline">Adicionar Cliente</span>
+              <span className="sm:hidden">Cliente</span>
             </button>
 
             {/* User Profile Pill & Logout */}

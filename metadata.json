@@ -1,6 +1,6 @@
 {
   "name": "EnablePay",
-  "description": "Sistema de gestão financeira inteligente, controle de notas promissórias, contas a pagar, quitações e amortizações - EnablePay.",
+  "description": "EnablePay - Controle de vendas e clientes facilitado, notas promissórias, contas a receber, quitações e amortizações.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

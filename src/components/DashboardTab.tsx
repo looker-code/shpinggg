@@ -113,14 +113,14 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
               className="bg-[#1E212D] hover:bg-[#262936] text-white font-bold text-sm px-5 py-3 rounded-2xl border border-[#262936] flex items-center gap-2 transition-all cursor-pointer"
             >
               <Plus className="w-4 h-4 stroke-[2.5]" />
-              <span>Adicionar Conta</span>
+              <span>Adicionar Cliente</span>
             </button>
 
             <button
               onClick={onNavigateToPayable}
               className="bg-[#12141A] hover:bg-[#1E212D] text-[#8B95A5] hover:text-white font-bold text-sm px-4 py-3 rounded-2xl border border-[#262936] flex items-center gap-2 transition-all cursor-pointer"
             >
-              <span>Ver Todas as Contas</span>
+              <span>Ver Contas a Receber</span>
               <ChevronRight className="w-4 h-4 text-[#8B95A5]" />
             </button>
           </div>
@@ -212,9 +212,9 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
             <div className="flex items-center justify-between mb-5 pb-3 border-b border-[#262936]">
               <div>
                 <h3 className="font-extrabold text-base text-white">
-                  Contas em Aberto
+                  Contas a Receber em Aberto
                 </h3>
-                <p className="text-xs text-[#8B95A5]">Pessoas com dívidas a receber</p>
+                <p className="text-xs text-[#8B95A5]">Clientes com valores a receber</p>
               </div>
               <button
                 onClick={onNavigateToPayable}
@@ -295,7 +295,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
               className="text-xs font-bold text-[#8B95A5] hover:text-[#11C76F] inline-flex items-center gap-1.5 cursor-pointer transition-colors"
             >
               <Plus className="w-3.5 h-3.5 text-[#11C76F]" />
-              <span>Adicionar nova conta por pessoa</span>
+              <span>Adicionar novo cliente</span>
             </button>
           </div>
         </div>
