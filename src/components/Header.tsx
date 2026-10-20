@@ -7,8 +7,7 @@ import {
   LogOut, 
   Bell,
   User,
-  ChevronDown,
-  Database
+  ChevronDown
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -16,7 +15,6 @@ interface HeaderProps {
   onTabChange: (tab: 'inicio' | 'a-pagar') => void;
   onOpenNewAccount: () => void;
   onOpenPaymentModal: () => void;
-  onOpenBackupModal: () => void;
   onLogout: () => void;
   pendingCount: number;
   overdueCount: number;
@@ -27,7 +25,6 @@ export const Header: React.FC<HeaderProps> = ({
   onTabChange,
   onOpenNewAccount,
   onOpenPaymentModal,
-  onOpenBackupModal,
   onLogout,
   pendingCount,
   overdueCount,
@@ -113,15 +110,6 @@ export const Header: React.FC<HeaderProps> = ({
               <Plus className="w-4 h-4 stroke-[2.5]" />
               <span className="hidden sm:inline">Nova Conta</span>
               <span className="sm:hidden">Conta</span>
-            </button>
-
-            <button
-              onClick={onOpenBackupModal}
-              className="bg-[#1E212D] hover:bg-[#262936] text-[#8B95A5] hover:text-white px-3 py-2 sm:py-2.5 rounded-xl border border-[#262936] flex items-center gap-1.5 transition-all active:scale-[0.98] cursor-pointer"
-              title="Backup e Restauração de Dados"
-            >
-              <Database className="w-4 h-4 text-[#11C76F]" />
-              <span className="hidden md:inline text-xs font-bold">Backup / Restaurar</span>
             </button>
 
             {/* User Profile Pill & Logout */}

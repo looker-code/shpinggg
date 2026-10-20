@@ -19,7 +19,6 @@ import { AccountsPayableTab } from './components/AccountsPayableTab';
 import { NewAccountModal } from './components/NewAccountModal';
 import { AddPaymentModal } from './components/AddPaymentModal';
 import { PromissoryDetailsModal } from './components/PromissoryDetailsModal';
-import { BackupModal } from './components/BackupModal';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
@@ -39,7 +38,6 @@ export default function App() {
   const [selectedAccountForPayment, setSelectedAccountForPayment] = useState<DebtAccount | null>(null);
   const [selectedAccountForDetails, setSelectedAccountForDetails] = useState<DebtAccount | null>(null);
   const [isGlobalPaymentModalOpen, setIsGlobalPaymentModalOpen] = useState(false);
-  const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
 
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'warn' } | null>(null);
 
@@ -52,21 +50,6 @@ export default function App() {
     setTimeout(() => {
       setToast(null);
     }, 3800);
-  };
-
-  const handleRestoreAccounts = (restoredList: DebtAccount[]) => {
-    setAccounts(restoredList);
-    saveAccounts(restoredList);
-    showToast(`${restoredList.length} ${restoredList.length === 1 ? 'cadastro restaurado' : 'cadastros restaurados'} com sucesso!`);
-  };
-
-  const handleClearDemoData = () => {
-    setAccounts((prev) => {
-      const filtered = prev.filter((a) => !isSeedAccount(a));
-      saveAccounts(filtered);
-      return filtered;
-    });
-    showToast('Registros de exemplo removidos com sucesso.');
   };
 
   const handleLogin = () => {
@@ -321,7 +304,6 @@ export default function App() {
         onTabChange={(tab) => setActiveTab(tab)}
         onOpenNewAccount={() => setIsNewAccountModalOpen(true)}
         onOpenPaymentModal={() => setIsGlobalPaymentModalOpen(true)}
-        onOpenBackupModal={() => setIsBackupModalOpen(true)}
         onLogout={handleLogout}
         pendingCount={summary.openCount + summary.partialCount}
         overdueCount={0}
@@ -394,16 +376,6 @@ export default function App() {
           onQuickSettle={handleQuickSettle}
           onDeletePayment={handleDeletePayment}
           onRealignAmortization={handleRealignAmortization}
-        />
-      )}
-
-      {isBackupModalOpen && (
-        <BackupModal
-          isOpen={true}
-          onClose={() => setIsBackupModalOpen(false)}
-          accounts={accounts}
-          onRestoreAccounts={handleRestoreAccounts}
-          onClearDemoData={handleClearDemoData}
         />
       )}
     </div>
