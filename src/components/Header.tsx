@@ -126,13 +126,11 @@ export const Header: React.FC<HeaderProps> = ({
                   : 'AD'}
               </div>
               <div className="hidden sm:block text-left text-xs leading-tight">
-                <span className="font-bold text-white block truncate max-w-[110px]">
+                <span className="font-bold text-white block truncate max-w-[130px]" title={currentUser?.name || 'Administrador'}>
                   {currentUser?.name || 'Administrador'}
                 </span>
-                <span className="text-[10px] text-[#8B95A5] block">
-                  {currentUser?.authMethod === 'magic_link'
-                    ? 'Magic Link'
-                    : 'Conectado'}
+                <span className="text-[10px] text-[#11C76F] block truncate max-w-[130px]" title={currentUser?.businessType || 'EnablePay'}>
+                  {currentUser?.businessType || 'Ativo'}
                 </span>
               </div>
               <button

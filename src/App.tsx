@@ -72,16 +72,17 @@ export default function App() {
           console.error('[EnablePay] Erro ao sincronizar do Supabase:', err);
         });
 
-      // Detecção automática de login via Link Mágico do Supabase (URL redirect)
+      // Sincronização de sessão ativa se houver
       const client = getSupabaseClient();
       if (client) {
         client.auth.getSession().then(({ data: { session } }) => {
           if (session?.user) {
+            const existing = getCurrentUser();
             const profile: UserProfile = {
               id: session.user.id,
-              name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Usuário',
-              email: session.user.email,
-              authMethod: 'magic_link',
+              name: session.user.user_metadata?.name || existing?.name || 'Administrador',
+              username: session.user.user_metadata?.username || existing?.username || 'usuario',
+              businessType: session.user.user_metadata?.businessType || existing?.businessType || 'Comércio / Geral',
               createdAt: session.user.created_at || new Date().toISOString(),
             };
             saveCurrentUser(profile);
@@ -92,11 +93,12 @@ export default function App() {
 
         const { data: authListener } = client.auth.onAuthStateChange((event, session) => {
           if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.user) {
+            const existing = getCurrentUser();
             const profile: UserProfile = {
               id: session.user.id,
-              name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Usuário',
-              email: session.user.email,
-              authMethod: 'magic_link',
+              name: session.user.user_metadata?.name || existing?.name || 'Administrador',
+              username: session.user.user_metadata?.username || existing?.username || 'usuario',
+              businessType: session.user.user_metadata?.businessType || existing?.businessType || 'Comércio / Geral',
               createdAt: session.user.created_at || new Date().toISOString(),
             };
             saveCurrentUser(profile);

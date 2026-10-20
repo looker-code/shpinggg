@@ -1,20 +1,32 @@
-import { getSupabaseClient, isSupabaseConfigured } from './supabase';
+import { getSupabaseClient } from './supabase';
 
 export interface UserProfile {
   id: string;
   name: string;
-  phone?: string;
-  email?: string;
-  authMethod: 'magic_link' | 'password';
+  username: string;
+  businessType: string;
   createdAt: string;
 }
 
 const STORAGE_AUTH_USER = 'enablepay_user_profile';
 const STORAGE_REGISTERED_USERS = 'enablepay_registered_users';
 
-export const isValidEmail = (email: string): boolean => {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
-};
+export const BUSINESS_TYPES = [
+  'Varejo / Loja Física',
+  'Prestação de Serviços',
+  'Autônomo / Profissional Liberal',
+  'Comércio de Veículos / Concessionária',
+  'Construção Civil / Reformas',
+  'Marcenaria / Móveis Planejados',
+  'Confecção / Moda & Roupas',
+  'Venda Direta / Revenda',
+  'Alimentação / Restaurante / Bar',
+  'Imobiliária / Corretagem',
+  'Agropecuária / Agronegócio',
+  'Tecnologia / Serviços Digitais',
+  'Saúde / Odontologia / Estética',
+  'Outro (descrever)',
+] as const;
 
 export const getCurrentUser = (): UserProfile | null => {
   try {
@@ -43,81 +55,6 @@ export const logoutCurrentUser = (): void => {
   } catch {}
 };
 
-// ============================================================================
-// --- ENVIO DO LINK MÁGICO (MAGIC LINK VIA SUPABASE AUTH) ---
-// ============================================================================
-
-export const sendMagicLink = async (
-  rawEmail: string,
-  name?: string
-): Promise<{ success: boolean; isRealEmail: boolean; message: string }> => {
-  const cleanEmail = rawEmail.trim().toLowerCase();
-  if (!isValidEmail(cleanEmail)) {
-    return { success: false, isRealEmail: false, message: 'Digite um endereço de e-mail válido (ex: seu@email.com).' };
-  }
-
-  // Tenta envio real via Supabase Auth
-  if (isSupabaseConfigured()) {
-    try {
-      const client = getSupabaseClient();
-      if (client) {
-        const redirectUrl = typeof window !== 'undefined' ? window.location.origin : undefined;
-        const { error } = await client.auth.signInWithOtp({
-          email: cleanEmail,
-          options: {
-            shouldCreateUser: true,
-            emailRedirectTo: redirectUrl,
-            data: name?.trim() ? { name: name.trim() } : undefined,
-          },
-        });
-
-        if (!error) {
-          return {
-            success: true,
-            isRealEmail: true,
-            message: `Link Mágico enviado para ${cleanEmail}! Abra seu e-mail e clique no link para entrar.`,
-          };
-        } else {
-          console.error('[EnablePay] Supabase Magic Link error:', error.message);
-          return {
-            success: false,
-            isRealEmail: true,
-            message: error.message.includes('rate limit') || error.message.includes('security')
-              ? 'Por segurança, aguarde 60 segundos antes de solicitar um novo link.'
-              : `Supabase: ${error.message}`,
-          };
-        }
-      }
-    } catch (err: any) {
-      console.warn('[EnablePay] Erro de rede ao conectar Supabase:', err);
-    }
-  }
-
-  // Fallback para modo demonstração
-  return {
-    success: true,
-    isRealEmail: false,
-    message: `Link Mágico gerado para ${cleanEmail}.`,
-  };
-};
-
-export const loginWithSimulatedMagicLink = (email: string, name?: string): UserProfile => {
-  const cleanEmail = email.trim().toLowerCase();
-  const profile: UserProfile = {
-    id: `usr_${Date.now()}`,
-    name: name?.trim() || cleanEmail.split('@')[0],
-    email: cleanEmail,
-    authMethod: 'magic_link',
-    createdAt: new Date().toISOString(),
-  };
-  saveCurrentUser(profile);
-  return profile;
-};
-
-// ============================================================================
-// --- REGISTRO E LOGIN POR SENHA ---
-// ============================================================================
-
 export const getRegisteredUsers = (): any[] => {
   try {
     const raw = localStorage.getItem(STORAGE_REGISTERED_USERS);
@@ -126,58 +63,101 @@ export const getRegisteredUsers = (): any[] => {
   return [];
 };
 
-export const registerWithPassword = async (
-  name: string,
-  emailOrPhone: string,
-  password: string
-): Promise<{ success: boolean; user?: UserProfile; message: string }> => {
-  const cleanIdent = emailOrPhone.trim().toLowerCase();
-  if (!name.trim()) return { success: false, message: 'Informe seu nome completo.' };
-  if (!cleanIdent) return { success: false, message: 'Informe seu e-mail ou usuário.' };
-  if (password.length < 4) return { success: false, message: 'A senha deve ter no mínimo 4 dígitos.' };
+// ============================================================================
+// --- CADASTRO DIRETO DE CONTA (SEM CONFIRMAÇÃO) ---
+// ============================================================================
 
-  const users = getRegisteredUsers();
-  const exists = users.find((u) => u.identifier === cleanIdent);
-  if (exists) {
-    return { success: false, message: 'Este usuário já está cadastrado. Faça login.' };
+export const registerUser = async (data: {
+  fullName: string;
+  username: string;
+  password: string;
+  businessType: string;
+  customBusinessType?: string;
+}): Promise<{ success: boolean; user?: UserProfile; message: string }> => {
+  const cleanName = data.fullName.trim();
+  const cleanUsername = data.username.trim().toLowerCase().replace(/\s+/g, '');
+  const cleanPassword = data.password.trim();
+  const cleanBusinessType = data.businessType.trim();
+  const cleanCustom = data.customBusinessType?.trim();
+
+  if (!cleanName) {
+    return { success: false, message: 'Por favor, informe seu Nome Completo.' };
+  }
+  if (!cleanUsername) {
+    return { success: false, message: 'Escolha um Nome de Usuário.' };
+  }
+  if (cleanUsername.length < 3) {
+    return { success: false, message: 'O nome de usuário deve ter pelo menos 3 caracteres.' };
+  }
+  if (!cleanPassword || cleanPassword.length < 4) {
+    return { success: false, message: 'A senha deve ter no mínimo 4 caracteres.' };
+  }
+  if (!cleanBusinessType) {
+    return { success: false, message: 'Selecione o tipo de negócio.' };
+  }
+  if (cleanBusinessType === 'Outro (descrever)' && !cleanCustom) {
+    return { success: false, message: 'Por favor, descreva o seu tipo de negócio no campo indicado.' };
   }
 
-  const newUser = {
+  const users = getRegisteredUsers();
+  const exists = users.find((u) => u.username === cleanUsername);
+  if (exists) {
+    return { success: false, message: 'Este nome de usuário já está em uso. Por favor, escolha outro.' };
+  }
+
+  const finalBusinessType = cleanBusinessType === 'Outro (descrever)' ? cleanCustom! : cleanBusinessType;
+
+  const newUserRecord = {
     id: `usr_${Date.now()}`,
-    name: name.trim(),
-    identifier: cleanIdent,
-    password,
+    name: cleanName,
+    username: cleanUsername,
+    password: cleanPassword,
+    businessType: finalBusinessType,
     createdAt: new Date().toISOString(),
   };
 
-  users.push(newUser);
-  localStorage.setItem(STORAGE_REGISTERED_USERS, JSON.stringify(users));
+  users.push(newUserRecord);
+  try {
+    localStorage.setItem(STORAGE_REGISTERED_USERS, JSON.stringify(users));
+  } catch {}
 
   const profile: UserProfile = {
-    id: newUser.id,
-    name: newUser.name,
-    email: cleanIdent.includes('@') ? cleanIdent : undefined,
-    authMethod: 'password',
-    createdAt: newUser.createdAt,
+    id: newUserRecord.id,
+    name: newUserRecord.name,
+    username: newUserRecord.username,
+    businessType: newUserRecord.businessType,
+    createdAt: newUserRecord.createdAt,
   };
 
   saveCurrentUser(profile);
   return { success: true, user: profile, message: 'Conta criada com sucesso!' };
 };
 
-export const loginWithPassword = async (
-  emailOrPhone: string,
+// ============================================================================
+// --- LOGIN DIRETO POR NOME DE USUÁRIO E SENHA ---
+// ============================================================================
+
+export const loginUser = async (
+  username: string,
   password: string
 ): Promise<{ success: boolean; user?: UserProfile; message: string }> => {
-  const cleanIdent = emailOrPhone.trim().toLowerCase();
+  const cleanUsername = username.trim().toLowerCase().replace(/\s+/g, '');
+  const cleanPassword = password.trim();
 
-  // Acesso admin padrão
-  if (cleanIdent === 'admin' && password === '123456') {
+  if (!cleanUsername) {
+    return { success: false, message: 'Informe seu nome de usuário.' };
+  }
+  if (!cleanPassword) {
+    return { success: false, message: 'Informe sua senha.' };
+  }
+
+  // Acesso admin demonstrativo padrão
+  if (cleanUsername === 'admin' && cleanPassword === '123456') {
     const adminUser: UserProfile = {
       id: 'admin_master',
       name: 'Administrador',
-      email: 'admin@enablepay.com',
-      authMethod: 'password',
+      username: 'admin',
+      businessType: 'Administração Geral',
       createdAt: new Date().toISOString(),
     };
     saveCurrentUser(adminUser);
@@ -185,19 +165,23 @@ export const loginWithPassword = async (
   }
 
   const users = getRegisteredUsers();
-  const found = users.find((u) => u.identifier === cleanIdent && u.password === password);
+  const found = users.find(
+    (u) =>
+      (u.username === cleanUsername || u.identifier === cleanUsername) &&
+      u.password === cleanPassword
+  );
 
   if (found) {
     const profile: UserProfile = {
       id: found.id,
       name: found.name,
-      email: found.identifier.includes('@') ? found.identifier : undefined,
-      authMethod: 'password',
-      createdAt: found.createdAt,
+      username: found.username || cleanUsername,
+      businessType: found.businessType || 'Comércio / Geral',
+      createdAt: found.createdAt || new Date().toISOString(),
     };
     saveCurrentUser(profile);
     return { success: true, user: profile, message: 'Login realizado com sucesso!' };
   }
 
-  return { success: false, message: 'E-mail ou senha incorretos.' };
+  return { success: false, message: 'Nome de usuário ou senha incorretos.' };
 };

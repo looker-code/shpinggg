@@ -1,26 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
-  Sparkles, 
   Lock, 
   User, 
   ArrowRight, 
   ShieldCheck, 
-  CheckCircle2, 
   AlertCircle, 
   Eye, 
   EyeOff, 
   RefreshCw, 
-  KeyRound, 
-  Mail,
-  ArrowLeft,
-  ExternalLink
+  Briefcase,
+  AtSign,
+  ChevronDown,
+  Edit3
 } from 'lucide-react';
 import { 
-  sendMagicLink, 
-  loginWithSimulatedMagicLink,
-  loginWithPassword, 
-  registerWithPassword,
-  isValidEmail,
+  registerUser,
+  loginUser,
+  BUSINESS_TYPES,
   UserProfile 
 } from '../utils/auth';
 
@@ -29,100 +25,69 @@ interface LoginScreenProps {
 }
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
-  // Modos: 'login' | 'cadastro'
-  const [authMode, setAuthMode] = useState<'login' | 'cadastro'>('login');
-  // Métodos: 'magic_link' | 'senha'
-  const [authMethod, setAuthMethod] = useState<'magic_link' | 'senha'>('magic_link');
+  // Modos principais: 'login' | 'cadastro'
+  const [authMode, setAuthMode] = useState<'login' | 'cadastro'>('cadastro');
 
-  // Campos
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [identifier, setIdentifier] = useState('admin');
-  const [password, setPassword] = useState('123456');
+  // Campos do formulário
+  const [fullName, setFullName] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [businessType, setBusinessType] = useState<string>('Varejo / Loja Física');
+  const [customBusinessType, setCustomBusinessType] = useState('');
 
-  // Estado do Link Mágico
-  const [magicLinkSent, setMagicLinkSent] = useState(false);
-  const [isRealEmailSent, setIsRealEmailSent] = useState(false);
-  const [countdown, setCountdown] = useState(0);
+  // Campos de login
+  const [loginUsername, setLoginUsername] = useState('admin');
+  const [loginPassword, setLoginPassword] = useState('123456');
 
   // Feedback
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
 
-  // Contador de reenvio
-  useEffect(() => {
-    if (countdown > 0) {
-      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [countdown]);
-
-  // --- Enviar Link Mágico para o E-mail ---
-  const handleSendMagicLink = async (e: React.FormEvent) => {
+  // --- Criar Conta Direta (Sem confirmação de e-mail) ---
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
-    setSuccessMessage('');
-
-    if (authMode === 'cadastro' && !name.trim()) {
-      setErrorMessage('Por favor, informe seu nome completo.');
-      return;
-    }
-
-    const cleanEmail = email.trim().toLowerCase();
-    if (!isValidEmail(cleanEmail)) {
-      setErrorMessage('Digite um endereço de e-mail válido (ex: seu@email.com).');
-      return;
-    }
-
     setIsLoading(true);
-    try {
-      const res = await sendMagicLink(cleanEmail, authMode === 'cadastro' ? name : undefined);
-      setIsLoading(false);
 
-      if (res.success) {
-        setMagicLinkSent(true);
-        setIsRealEmailSent(res.isRealEmail);
-        setCountdown(60);
-        setSuccessMessage(res.message);
+    try {
+      const res = await registerUser({
+        fullName,
+        username,
+        password,
+        businessType,
+        customBusinessType,
+      });
+
+      setIsLoading(false);
+      if (res.success && res.user) {
+        onLogin(res.user);
       } else {
         setErrorMessage(res.message);
       }
     } catch {
       setIsLoading(false);
-      setErrorMessage('Erro ao enviar Link Mágico. Tente novamente.');
+      setErrorMessage('Erro ao criar conta. Tente novamente.');
     }
   };
 
-  // --- Login ou Cadastro por Senha ---
-  const handlePasswordAuth = async (e: React.FormEvent) => {
+  // --- Entrar no Sistema ---
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
-    setSuccessMessage('');
     setIsLoading(true);
 
     try {
-      if (authMode === 'cadastro') {
-        const res = await registerWithPassword(name, identifier, password);
-        setIsLoading(false);
-        if (res.success && res.user) {
-          onLogin(res.user);
-        } else {
-          setErrorMessage(res.message);
-        }
+      const res = await loginUser(loginUsername, loginPassword);
+      setIsLoading(false);
+      if (res.success && res.user) {
+        onLogin(res.user);
       } else {
-        const res = await loginWithPassword(identifier, password);
-        setIsLoading(false);
-        if (res.success && res.user) {
-          onLogin(res.user);
-        } else {
-          setErrorMessage(res.message);
-        }
+        setErrorMessage(res.message);
       }
     } catch {
       setIsLoading(false);
-      setErrorMessage('Erro de autenticação. Tente novamente.');
+      setErrorMessage('Erro ao realizar login.');
     }
   };
 
@@ -131,7 +96,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
       {/* Glow de fundo */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[520px] h-[260px] bg-[#11C76F]/10 blur-[130px] pointer-events-none rounded-full" />
 
-      <div className="w-full max-w-sm relative z-10">
+      <div className="w-full max-w-md relative z-10">
         {/* EnablePay Brand Header */}
         <div className="flex flex-col items-center mb-6">
           <div className="w-14 h-14 rounded-2xl bg-[#11C76F] flex items-center justify-center mb-3 shadow-[0_8px_24px_rgba(17,199,111,0.25)]">
@@ -141,37 +106,19 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
             Enable<span className="text-[#11C76F]">Pay</span>
           </h1>
           <p className="text-xs text-[#8B95A5] mt-1 font-medium text-center">
-            Gestão financeira de amortizações, promissórias e títulos a pagar
+            Gestão inteligente de promissórias, amortizações e títulos a pagar
           </p>
         </div>
 
         {/* Card Principal */}
         <div className="bg-[#161821] rounded-3xl border border-[#262936] p-6 sm:p-7 shadow-2xl space-y-5">
-          {/* Seletor: Entrar vs Criar Conta */}
+          {/* Seletor: Criar Conta vs Entrar */}
           <div className="grid grid-cols-2 gap-1 bg-[#12141A] p-1 rounded-xl border border-[#262936]">
             <button
               type="button"
               onClick={() => {
-                setAuthMode('login');
-                setMagicLinkSent(false);
-                setErrorMessage('');
-                setSuccessMessage('');
-              }}
-              className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                authMode === 'login'
-                  ? 'bg-[#11C76F] text-[#0D0E12] font-extrabold shadow-sm'
-                  : 'text-[#8B95A5] hover:text-white'
-              }`}
-            >
-              Entrar
-            </button>
-            <button
-              type="button"
-              onClick={() => {
                 setAuthMode('cadastro');
-                setMagicLinkSent(false);
                 setErrorMessage('');
-                setSuccessMessage('');
               }}
               className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                 authMode === 'cadastro'
@@ -181,45 +128,23 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
             >
               Criar Conta
             </button>
-          </div>
-
-          {/* Abas: Magic Link vs Senha */}
-          <div className="flex items-center justify-center gap-6 text-xs font-semibold border-b border-[#262936] pb-3">
             <button
               type="button"
               onClick={() => {
-                setAuthMethod('magic_link');
-                setMagicLinkSent(false);
+                setAuthMode('login');
                 setErrorMessage('');
               }}
-              className={`flex items-center gap-1.5 pb-1 border-b-2 transition-all cursor-pointer ${
-                authMethod === 'magic_link'
-                  ? 'border-[#11C76F] text-[#11C76F] font-bold'
-                  : 'border-transparent text-[#8B95A5] hover:text-white'
+              className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                authMode === 'login'
+                  ? 'bg-[#11C76F] text-[#0D0E12] font-extrabold shadow-sm'
+                  : 'text-[#8B95A5] hover:text-white'
               }`}
             >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Magic Link</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setAuthMethod('senha');
-                setErrorMessage('');
-              }}
-              className={`flex items-center gap-1.5 pb-1 border-b-2 transition-all cursor-pointer ${
-                authMethod === 'senha'
-                  ? 'border-[#11C76F] text-[#11C76F] font-bold'
-                  : 'border-transparent text-[#8B95A5] hover:text-white'
-              }`}
-            >
-              <KeyRound className="w-3.5 h-3.5" />
-              <span>Senha</span>
+              Entrar
             </button>
           </div>
 
-          {/* Mensagens de Feedback */}
+          {/* Mensagens de Erro */}
           {errorMessage && (
             <div className="p-3 bg-[#241318] border border-[#FF3B30]/30 rounded-xl text-[#FF453A] text-xs font-semibold flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0" />
@@ -227,196 +152,51 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
             </div>
           )}
 
-          {successMessage && !magicLinkSent && (
-            <div className="p-3 bg-[#11C76F]/10 border border-[#11C76F]/30 rounded-xl text-[#11C76F] text-xs font-semibold flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 shrink-0" />
-              <span>{successMessage}</span>
-            </div>
-          )}
-
           {/* ======================================================== */}
-          {/* MÉTODO 1: MAGIC LINK (LINK MÁGICO POR E-MAIL)           */}
+          {/* MODO 1: CRIAR CONTA (SEM CONFIRMAÇÃO)                     */}
           {/* ======================================================== */}
-          {authMethod === 'magic_link' && (
-            <>
-              {!magicLinkSent ? (
-                <form onSubmit={handleSendMagicLink} className="space-y-4">
-                  {authMode === 'cadastro' && (
-                    <div>
-                      <label className="block text-xs font-semibold text-[#8B95A5] mb-1.5">
-                        Seu Nome Completo
-                      </label>
-                      <div className="relative">
-                        <User className="w-4 h-4 text-[#8B95A5] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                        <input
-                          type="text"
-                          required
-                          value={name}
-                          onChange={(e) => setName(e.target.value)}
-                          placeholder="Ex: Carlos Eduardo"
-                          className="w-full pl-10 pr-4 py-3 bg-[#12141A] border border-[#262936] focus:border-[#11C76F] rounded-xl text-sm font-medium text-white placeholder-[#5F6876] outline-none"
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  <div>
-                    <label className="block text-xs font-semibold text-[#8B95A5] mb-1.5">
-                      Seu E-mail
-                    </label>
-                    <div className="relative">
-                      <Mail className="w-4 h-4 text-[#8B95A5] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="email"
-                        required
-                        value={email}
-                        onChange={(e) => {
-                          setEmail(e.target.value);
-                          setErrorMessage('');
-                        }}
-                        placeholder="seu@email.com"
-                        className="w-full pl-10 pr-4 py-3 bg-[#12141A] border border-[#262936] focus:border-[#11C76F] rounded-xl text-sm font-semibold text-white placeholder-[#5F6876] outline-none"
-                      />
-                    </div>
-                    <span className="text-[11px] text-[#8B95A5] block mt-1.5">
-                      {authMode === 'cadastro' 
-                        ? 'Enviaremos um link mágico para você confirmar o cadastro e entrar com 1 clique.'
-                        : 'Enviaremos um link de acesso direto. Sem senhas para memorizar.'}
-                    </span>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="w-full bg-[#11C76F] hover:bg-[#0EAD60] active:scale-[0.99] text-[#0D0E12] font-extrabold py-3.5 rounded-xl text-sm transition-all shadow-[0_4px_16px_rgba(17,199,111,0.25)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-                  >
-                    {isLoading ? (
-                      <RefreshCw className="w-4 h-4 animate-spin text-[#0D0E12]" />
-                    ) : (
-                      <>
-                        <Sparkles className="w-4 h-4 fill-[#0D0E12]" />
-                        <span>
-                          {authMode === 'cadastro' 
-                            ? 'Cadastrar com Magic Link' 
-                            : 'Enviar Magic Link'}
-                        </span>
-                      </>
-                    )}
-                  </button>
-                </form>
-              ) : (
-                <div className="space-y-4 animate-in fade-in text-center py-2">
-                  <div className="w-14 h-14 rounded-full bg-[#11C76F]/15 border-2 border-[#11C76F] flex items-center justify-center mx-auto text-[#11C76F]">
-                    <CheckCircle2 className="w-8 h-8 stroke-[2.2]" />
-                  </div>
-
-                  <div>
-                    <h3 className="text-base font-bold text-white">Magic Link Enviado!</h3>
-                    <p className="text-xs text-[#8B95A5] mt-1 leading-relaxed">
-                      Enviamos um link de acesso seguro para:
-                    </p>
-                    <div className="mt-2 py-1.5 px-3 bg-[#12141A] rounded-xl border border-[#262936] inline-block text-xs font-bold text-[#11C76F]">
-                      {email}
-                    </div>
-                  </div>
-
-                  <div className="p-3.5 bg-[#12141A] rounded-2xl border border-[#262936] text-xs text-[#8B95A5] text-left space-y-1.5">
-                    <div className="flex items-center gap-1.5 font-bold text-white">
-                      <Mail className="w-4 h-4 text-[#11C76F]" />
-                      <span>Como entrar:</span>
-                    </div>
-                    <p className="text-[11px] leading-relaxed">
-                      Abra a caixa de entrada do seu e-mail (ou pasta de Spam) e clique no botão 
-                      <strong className="text-white"> "Confirm your email"</strong> ou 
-                      <strong className="text-white"> "Log In"</strong>. Você será conectado automaticamente ao EnablePay!
-                    </p>
-                  </div>
-
-                  {/* Fallback rápido para testes caso não tenha configurado SMTP real ainda */}
-                  {!isRealEmailSent && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const profile = loginWithSimulatedMagicLink(email, name);
-                        onLogin(profile);
-                      }}
-                      className="w-full py-2.5 bg-[#11C76F]/15 hover:bg-[#11C76F]/25 text-[#11C76F] border border-[#11C76F]/30 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                      <span>Simular clique no link (Entrar Agora)</span>
-                    </button>
-                  )}
-
-                  <div className="flex items-center justify-between text-xs pt-1">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setMagicLinkSent(false);
-                      }}
-                      className="text-[#8B95A5] hover:text-white flex items-center gap-1 font-semibold cursor-pointer"
-                    >
-                      <ArrowLeft className="w-3 h-3" />
-                      Trocar e-mail
-                    </button>
-
-                    <button
-                      type="button"
-                      disabled={countdown > 0 || isLoading}
-                      onClick={handleSendMagicLink}
-                      className="text-[#11C76F] disabled:text-[#8B95A5] font-bold hover:underline cursor-pointer disabled:cursor-not-allowed"
-                    >
-                      {countdown > 0 ? `Reenviar em ${countdown}s` : 'Reenviar Link'}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-
-          {/* ======================================================== */}
-          {/* MÉTODO 2: SENHA TRADICIONAL                               */}
-          {/* ======================================================== */}
-          {authMethod === 'senha' && (
-            <form onSubmit={handlePasswordAuth} className="space-y-4">
-              {authMode === 'cadastro' && (
-                <div>
-                  <label className="block text-xs font-semibold text-[#8B95A5] mb-1.5">
-                    Nome Completo
-                  </label>
-                  <div className="relative">
-                    <User className="w-4 h-4 text-[#8B95A5] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      required
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="Ex: Carlos Eduardo"
-                      className="w-full pl-10 pr-4 py-3 bg-[#12141A] border border-[#262936] focus:border-[#11C76F] rounded-xl text-sm font-medium text-white placeholder-[#5F6876] outline-none"
-                    />
-                  </div>
-                </div>
-              )}
-
+          {authMode === 'cadastro' && (
+            <form onSubmit={handleRegister} className="space-y-4">
+              {/* Nome Completo */}
               <div>
                 <label className="block text-xs font-semibold text-[#8B95A5] mb-1.5">
-                  E-mail ou Usuário
+                  Nome Completo
                 </label>
                 <div className="relative">
                   <User className="w-4 h-4 text-[#8B95A5] absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     required
-                    value={identifier}
-                    onChange={(e) => setIdentifier(e.target.value)}
-                    placeholder="seu@email.com ou admin"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Ex: Carlos Eduardo de Souza"
                     className="w-full pl-10 pr-4 py-3 bg-[#12141A] border border-[#262936] focus:border-[#11C76F] rounded-xl text-sm font-medium text-white placeholder-[#5F6876] outline-none"
                   />
                 </div>
               </div>
 
+              {/* Nome de Usuário */}
               <div>
                 <label className="block text-xs font-semibold text-[#8B95A5] mb-1.5">
-                  {authMode === 'cadastro' ? 'Criar uma Senha' : 'Senha'}
+                  Nome de Usuário <span className="text-[#5F6876] font-normal">(para login)</span>
+                </label>
+                <div className="relative">
+                  <AtSign className="w-4 h-4 text-[#8B95A5] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    required
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s+/g, ''))}
+                    placeholder="ex: carlossouza ou lojadocarlos"
+                    className="w-full pl-10 pr-4 py-3 bg-[#12141A] border border-[#262936] focus:border-[#11C76F] rounded-xl text-sm font-mono text-white placeholder-[#5F6876] outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Senha */}
+              <div>
+                <label className="block text-xs font-semibold text-[#8B95A5] mb-1.5">
+                  Senha
                 </label>
                 <div className="relative">
                   <Lock className="w-4 h-4 text-[#8B95A5] absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -425,6 +205,110 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Crie uma senha segura"
+                    className="w-full pl-10 pr-11 py-3 bg-[#12141A] border border-[#262936] focus:border-[#11C76F] rounded-xl text-sm font-medium text-white placeholder-[#5F6876] outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#8B95A5] hover:text-white p-1 cursor-pointer transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* List Box: Tipo de Negócio */}
+              <div>
+                <label className="block text-xs font-semibold text-[#8B95A5] mb-1.5">
+                  Tipo de Negócio
+                </label>
+                <div className="relative">
+                  <Briefcase className="w-4 h-4 text-[#8B95A5] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <select
+                    value={businessType}
+                    onChange={(e) => setBusinessType(e.target.value)}
+                    className="w-full pl-10 pr-10 py-3 bg-[#12141A] border border-[#262936] focus:border-[#11C76F] rounded-xl text-sm font-medium text-white outline-none cursor-pointer appearance-none"
+                  >
+                    {BUSINESS_TYPES.map((type) => (
+                      <option key={type} value={type} className="bg-[#161821] text-white py-1">
+                        {type}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-[#8B95A5] absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+              </div>
+
+              {/* Campo para Descrever quando selecionado 'Outro' */}
+              {businessType === 'Outro (descrever)' && (
+                <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+                  <label className="block text-xs font-semibold text-[#11C76F] mb-1.5 flex items-center gap-1.5">
+                    <Edit3 className="w-3.5 h-3.5" />
+                    <span>Descreva seu tipo de negócio</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={customBusinessType}
+                    onChange={(e) => setCustomBusinessType(e.target.value)}
+                    placeholder="Ex: Oficina Mecânica, Gráfica Rápida, Marcenaria..."
+                    className="w-full px-4 py-3 bg-[#12141A] border border-[#11C76F]/50 focus:border-[#11C76F] rounded-xl text-sm font-medium text-white placeholder-[#5F6876] outline-none"
+                  />
+                </div>
+              )}
+
+              {/* Botão Criar Conta */}
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-[#11C76F] hover:bg-[#0EAD60] active:scale-[0.99] text-[#0D0E12] font-extrabold py-3.5 rounded-xl text-sm transition-all shadow-[0_4px_16px_rgba(17,199,111,0.25)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 mt-2"
+              >
+                {isLoading ? (
+                  <RefreshCw className="w-4 h-4 animate-spin text-[#0D0E12]" />
+                ) : (
+                  <>
+                    <span>Criar Conta e Entrar</span>
+                    <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+                  </>
+                )}
+              </button>
+            </form>
+          )}
+
+          {/* ======================================================== */}
+          {/* MODO 2: ENTRAR (LOGIN POR USUÁRIO E SENHA)               */}
+          {/* ======================================================== */}
+          {authMode === 'login' && (
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-[#8B95A5] mb-1.5">
+                  Nome de Usuário
+                </label>
+                <div className="relative">
+                  <AtSign className="w-4 h-4 text-[#8B95A5] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    required
+                    value={loginUsername}
+                    onChange={(e) => setLoginUsername(e.target.value.toLowerCase().replace(/\s+/g, ''))}
+                    placeholder="admin ou seu nome de usuário"
+                    className="w-full pl-10 pr-4 py-3 bg-[#12141A] border border-[#262936] focus:border-[#11C76F] rounded-xl text-sm font-mono text-white placeholder-[#5F6876] outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#8B95A5] mb-1.5">
+                  Senha
+                </label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-[#8B95A5] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
                     placeholder="••••••••"
                     className="w-full pl-10 pr-11 py-3 bg-[#12141A] border border-[#262936] focus:border-[#11C76F] rounded-xl text-sm font-medium text-white placeholder-[#5F6876] outline-none"
                   />
@@ -438,14 +322,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                 </div>
               </div>
 
-              {authMode === 'login' && (
-                <div className="p-3 bg-[#1E212D] rounded-xl border border-[#262936] flex items-center justify-between text-xs">
-                  <span className="text-[#8B95A5]">Acesso demonstrativo:</span>
-                  <span className="font-mono text-[#11C76F] font-bold bg-[#11C76F]/10 border border-[#11C76F]/20 px-2 py-0.5 rounded-lg">
-                    admin : 123456
-                  </span>
-                </div>
-              )}
+              <div className="p-3 bg-[#1E212D] rounded-xl border border-[#262936] flex items-center justify-between text-xs">
+                <span className="text-[#8B95A5]">Acesso demonstrativo:</span>
+                <span className="font-mono text-[#11C76F] font-bold bg-[#11C76F]/10 border border-[#11C76F]/20 px-2 py-0.5 rounded-lg">
+                  admin : 123456
+                </span>
+              </div>
 
               <button
                 type="submit"
@@ -456,7 +338,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                   <RefreshCw className="w-4 h-4 animate-spin text-[#0D0E12]" />
                 ) : (
                   <>
-                    <span>{authMode === 'cadastro' ? 'Finalizar Cadastro' : 'Entrar com Senha'}</span>
+                    <span>Entrar no EnablePay</span>
                     <ArrowRight className="w-4 h-4 stroke-[2.5]" />
                   </>
                 )}
@@ -468,7 +350,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
         {/* Rodapé de Segurança */}
         <div className="flex items-center justify-center gap-2 text-xs text-[#8B95A5] mt-6">
           <ShieldCheck className="w-4 h-4 text-[#11C76F]" />
-          <span>EnablePay • Autenticação segura via Magic Link e Senha</span>
+          <span>EnablePay • Controle de promissórias e amortizações</span>
         </div>
       </div>
     </div>
