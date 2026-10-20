@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Mail, 
+  Sparkles, 
   Lock, 
   User, 
   ArrowRight, 
@@ -11,12 +11,13 @@ import {
   EyeOff, 
   RefreshCw, 
   KeyRound, 
+  Mail,
   ArrowLeft,
-  Inbox
+  ExternalLink
 } from 'lucide-react';
 import { 
-  sendEmailOtp, 
-  verifyEmailOtp, 
+  sendMagicLink, 
+  loginWithSimulatedMagicLink,
   loginWithPassword, 
   registerWithPassword,
   isValidEmail,
@@ -28,30 +29,29 @@ interface LoginScreenProps {
 }
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
-  // Modos principais: 'login' | 'cadastro'
+  // Modos: 'login' | 'cadastro'
   const [authMode, setAuthMode] = useState<'login' | 'cadastro'>('login');
-  // Método de autenticação: 'email_otp' | 'senha'
-  const [authMethod, setAuthMethod] = useState<'email_otp' | 'senha'>('email_otp');
+  // Métodos: 'magic_link' | 'senha'
+  const [authMethod, setAuthMethod] = useState<'magic_link' | 'senha'>('magic_link');
 
-  // Campos do formulário
+  // Campos
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [identifier, setIdentifier] = useState('admin');
   const [password, setPassword] = useState('123456');
   const [showPassword, setShowPassword] = useState(false);
 
-  // Estados do fluxo de E-mail OTP
-  const [emailStep, setEmailStep] = useState<'enter_email' | 'enter_code'>('enter_email');
-  const [otpCode, setOtpCode] = useState('');
+  // Estado do Link Mágico
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const [isRealEmailSent, setIsRealEmailSent] = useState(false);
   const [countdown, setCountdown] = useState(0);
-  const [simulatedEmailToast, setSimulatedEmailToast] = useState<{ email: string; code: string } | null>(null);
 
-  // Estados de feedback
+  // Feedback
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
-  // Contador para reenvio de código por e-mail
+  // Contador de reenvio
   useEffect(() => {
     if (countdown > 0) {
       const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
@@ -59,8 +59,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
     }
   }, [countdown]);
 
-  // --- Enviar Código OTP para o E-mail ---
-  const handleRequestEmailCode = async (e: React.FormEvent) => {
+  // --- Enviar Link Mágico para o E-mail ---
+  const handleSendMagicLink = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
     setSuccessMessage('');
@@ -78,56 +78,24 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
 
     setIsLoading(true);
     try {
-      const res = await sendEmailOtp(cleanEmail, authMode === 'cadastro' ? name : undefined);
+      const res = await sendMagicLink(cleanEmail, authMode === 'cadastro' ? name : undefined);
       setIsLoading(false);
 
       if (res.success) {
-        setEmailStep('enter_code');
+        setMagicLinkSent(true);
+        setIsRealEmailSent(res.isRealEmail);
         setCountdown(60);
         setSuccessMessage(res.message);
-
-        // Se for gerado em modo teste/simulação direta, exibe a notificação visual do e-mail
-        if (res.simulatedCode) {
-          setSimulatedEmailToast({ email: cleanEmail, code: res.simulatedCode });
-          setOtpCode(res.simulatedCode);
-        }
       } else {
         setErrorMessage(res.message);
       }
     } catch {
       setIsLoading(false);
-      setErrorMessage('Erro ao solicitar código de verificação por e-mail.');
+      setErrorMessage('Erro ao enviar Link Mágico. Tente novamente.');
     }
   };
 
-  // --- Validar Código OTP recebido por E-mail ---
-  const handleVerifyEmailCode = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMessage('');
-
-    if (otpCode.trim().length < 6) {
-      setErrorMessage('Digite o código de 6 dígitos enviado para seu e-mail.');
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const res = await verifyEmailOtp(email, otpCode, name);
-      setIsLoading(false);
-
-      if (res.success && res.user) {
-        setSimulatedEmailToast(null);
-        onLogin(res.user);
-      } else {
-        setErrorMessage(res.message);
-      }
-    } catch {
-      setIsLoading(false);
-      setErrorMessage('Erro ao validar código OTP por e-mail.');
-    }
-  };
-
-  // --- Login ou Cadastro por Senha Tradicional ---
+  // --- Login ou Cadastro por Senha ---
   const handlePasswordAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
@@ -163,35 +131,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
       {/* Glow de fundo */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[520px] h-[260px] bg-[#11C76F]/10 blur-[130px] pointer-events-none rounded-full" />
 
-      {/* Pop-up Notificação de E-mail (quando em simulação ou teste rápido) */}
-      {simulatedEmailToast && (
-        <div className="fixed top-5 z-50 animate-in slide-in-from-top-4 duration-300 max-w-sm w-full px-4">
-          <div className="bg-[#1C202C] border-2 border-[#11C76F] p-4 rounded-2xl shadow-[0_10px_40px_rgba(17,199,111,0.3)] text-xs space-y-1.5 relative overflow-hidden">
-            <div className="flex items-center justify-between text-[#8B95A5]">
-              <span className="font-bold flex items-center gap-1.5 text-white">
-                <Inbox className="w-4 h-4 text-[#11C76F]" />
-                Novo E-mail: EnablePay • Agora
-              </span>
-              <button 
-                onClick={() => setSimulatedEmailToast(null)}
-                className="text-[#8B95A5] hover:text-white"
-              >
-                ✕
-              </button>
-            </div>
-            <p className="text-white">
-              Seu código de acesso OTP é:{' '}
-              <strong className="text-[#11C76F] font-mono text-sm tracking-wider bg-[#11C76F]/10 px-2 py-0.5 rounded border border-[#11C76F]/20">
-                {simulatedEmailToast.code}
-              </strong>
-            </p>
-            <span className="text-[10px] text-[#8B95A5] block">
-              Enviado para: {simulatedEmailToast.email} • Válido por 10 min
-            </span>
-          </div>
-        </div>
-      )}
-
       <div className="w-full max-w-sm relative z-10">
         {/* EnablePay Brand Header */}
         <div className="flex flex-col items-center mb-6">
@@ -202,7 +141,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
             Enable<span className="text-[#11C76F]">Pay</span>
           </h1>
           <p className="text-xs text-[#8B95A5] mt-1 font-medium text-center">
-            Gestão inteligente de promissórias, amortizações e títulos a pagar
+            Gestão financeira de amortizações, promissórias e títulos a pagar
           </p>
         </div>
 
@@ -214,7 +153,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
               type="button"
               onClick={() => {
                 setAuthMode('login');
-                setEmailStep('enter_email');
+                setMagicLinkSent(false);
                 setErrorMessage('');
                 setSuccessMessage('');
               }}
@@ -230,7 +169,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
               type="button"
               onClick={() => {
                 setAuthMode('cadastro');
-                setEmailStep('enter_email');
+                setMagicLinkSent(false);
                 setErrorMessage('');
                 setSuccessMessage('');
               }}
@@ -244,23 +183,23 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
             </button>
           </div>
 
-          {/* Abas de Método: E-mail (Código OTP) vs Senha */}
-          <div className="flex items-center justify-center gap-4 text-xs font-semibold border-b border-[#262936] pb-3">
+          {/* Abas: Magic Link vs Senha */}
+          <div className="flex items-center justify-center gap-6 text-xs font-semibold border-b border-[#262936] pb-3">
             <button
               type="button"
               onClick={() => {
-                setAuthMethod('email_otp');
-                setEmailStep('enter_email');
+                setAuthMethod('magic_link');
+                setMagicLinkSent(false);
                 setErrorMessage('');
               }}
               className={`flex items-center gap-1.5 pb-1 border-b-2 transition-all cursor-pointer ${
-                authMethod === 'email_otp'
+                authMethod === 'magic_link'
                   ? 'border-[#11C76F] text-[#11C76F] font-bold'
                   : 'border-transparent text-[#8B95A5] hover:text-white'
               }`}
             >
-              <Mail className="w-3.5 h-3.5" />
-              <span>Código por E-mail (OTP)</span>
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Magic Link</span>
             </button>
 
             <button
@@ -288,7 +227,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
             </div>
           )}
 
-          {successMessage && (
+          {successMessage && !magicLinkSent && (
             <div className="p-3 bg-[#11C76F]/10 border border-[#11C76F]/30 rounded-xl text-[#11C76F] text-xs font-semibold flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 shrink-0" />
               <span>{successMessage}</span>
@@ -296,12 +235,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
           )}
 
           {/* ======================================================== */}
-          {/* MÉTODO 1: AUTENTICAÇÃO POR CÓDIGO OTP VIA E-MAIL         */}
+          {/* MÉTODO 1: MAGIC LINK (LINK MÁGICO POR E-MAIL)           */}
           {/* ======================================================== */}
-          {authMethod === 'email_otp' && (
+          {authMethod === 'magic_link' && (
             <>
-              {emailStep === 'enter_email' ? (
-                <form onSubmit={handleRequestEmailCode} className="space-y-4">
+              {!magicLinkSent ? (
+                <form onSubmit={handleSendMagicLink} className="space-y-4">
                   {authMode === 'cadastro' && (
                     <div>
                       <label className="block text-xs font-semibold text-[#8B95A5] mb-1.5">
@@ -340,7 +279,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                       />
                     </div>
                     <span className="text-[11px] text-[#8B95A5] block mt-1.5">
-                      Enviaremos um código OTP de 6 dígitos para o seu e-mail.
+                      {authMode === 'cadastro' 
+                        ? 'Enviaremos um link mágico para você confirmar o cadastro e entrar com 1 clique.'
+                        : 'Enviaremos um link de acesso direto. Sem senhas para memorizar.'}
                     </span>
                   </div>
 
@@ -353,77 +294,81 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                       <RefreshCw className="w-4 h-4 animate-spin text-[#0D0E12]" />
                     ) : (
                       <>
-                        <span>{authMode === 'cadastro' ? 'Cadastrar com Código OTP' : 'Enviar Código por E-mail'}</span>
-                        <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+                        <Sparkles className="w-4 h-4 fill-[#0D0E12]" />
+                        <span>
+                          {authMode === 'cadastro' 
+                            ? 'Cadastrar com Magic Link' 
+                            : 'Enviar Magic Link'}
+                        </span>
                       </>
                     )}
                   </button>
                 </form>
               ) : (
-                <form onSubmit={handleVerifyEmailCode} className="space-y-4 animate-in fade-in">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-[#8B95A5] truncate max-w-[210px]">
-                      Enviado para: <strong className="text-white">{email}</strong>
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setEmailStep('enter_email')}
-                      className="text-[#11C76F] hover:underline flex items-center gap-1 cursor-pointer font-bold shrink-0 ml-1"
-                    >
-                      <ArrowLeft className="w-3 h-3" />
-                      Trocar
-                    </button>
-                  </div>
-
-                  <div className="p-3 bg-[#12141A] rounded-xl border border-[#262936] text-xs text-[#8B95A5] leading-relaxed">
-                    ✨ <strong className="text-white">Entrada rápida:</strong> Você pode clicar no <span className="text-[#11C76F] font-bold">link do e-mail</span> para entrar direto, ou digitar o código de 6 dígitos abaixo:
+                <div className="space-y-4 animate-in fade-in text-center py-2">
+                  <div className="w-14 h-14 rounded-full bg-[#11C76F]/15 border-2 border-[#11C76F] flex items-center justify-center mx-auto text-[#11C76F]">
+                    <CheckCircle2 className="w-8 h-8 stroke-[2.2]" />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-[#8B95A5] mb-1.5">
-                      Código de 6 dígitos recebido no e-mail
-                    </label>
-                    <div className="relative">
-                      <Mail className="w-4 h-4 text-[#8B95A5] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="text"
-                        required
-                        maxLength={6}
-                        value={otpCode}
-                        onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                        placeholder="000000"
-                        className="w-full pl-10 pr-4 py-3 bg-[#12141A] border border-[#262936] focus:border-[#11C76F] rounded-xl text-lg font-black tracking-widest text-[#11C76F] placeholder-[#5F6876] outline-none text-center"
-                      />
+                    <h3 className="text-base font-bold text-white">Magic Link Enviado!</h3>
+                    <p className="text-xs text-[#8B95A5] mt-1 leading-relaxed">
+                      Enviamos um link de acesso seguro para:
+                    </p>
+                    <div className="mt-2 py-1.5 px-3 bg-[#12141A] rounded-xl border border-[#262936] inline-block text-xs font-bold text-[#11C76F]">
+                      {email}
                     </div>
                   </div>
 
+                  <div className="p-3.5 bg-[#12141A] rounded-2xl border border-[#262936] text-xs text-[#8B95A5] text-left space-y-1.5">
+                    <div className="flex items-center gap-1.5 font-bold text-white">
+                      <Mail className="w-4 h-4 text-[#11C76F]" />
+                      <span>Como entrar:</span>
+                    </div>
+                    <p className="text-[11px] leading-relaxed">
+                      Abra a caixa de entrada do seu e-mail (ou pasta de Spam) e clique no botão 
+                      <strong className="text-white"> "Confirm your email"</strong> ou 
+                      <strong className="text-white"> "Log In"</strong>. Você será conectado automaticamente ao EnablePay!
+                    </p>
+                  </div>
+
+                  {/* Fallback rápido para testes caso não tenha configurado SMTP real ainda */}
+                  {!isRealEmailSent && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const profile = loginWithSimulatedMagicLink(email, name);
+                        onLogin(profile);
+                      }}
+                      className="w-full py-2.5 bg-[#11C76F]/15 hover:bg-[#11C76F]/25 text-[#11C76F] border border-[#11C76F]/30 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>Simular clique no link (Entrar Agora)</span>
+                    </button>
+                  )}
+
                   <div className="flex items-center justify-between text-xs pt-1">
-                    <span className="text-[#8B95A5]">Não recebeu o e-mail?</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMagicLinkSent(false);
+                      }}
+                      className="text-[#8B95A5] hover:text-white flex items-center gap-1 font-semibold cursor-pointer"
+                    >
+                      <ArrowLeft className="w-3 h-3" />
+                      Trocar e-mail
+                    </button>
+
                     <button
                       type="button"
                       disabled={countdown > 0 || isLoading}
-                      onClick={handleRequestEmailCode}
+                      onClick={handleSendMagicLink}
                       className="text-[#11C76F] disabled:text-[#8B95A5] font-bold hover:underline cursor-pointer disabled:cursor-not-allowed"
                     >
-                      {countdown > 0 ? `Reenviar em ${countdown}s` : 'Reenviar Código'}
+                      {countdown > 0 ? `Reenviar em ${countdown}s` : 'Reenviar Link'}
                     </button>
                   </div>
-
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="w-full bg-[#11C76F] hover:bg-[#0EAD60] active:scale-[0.99] text-[#0D0E12] font-extrabold py-3.5 rounded-xl text-sm transition-all shadow-[0_4px_16px_rgba(17,199,111,0.25)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-                  >
-                    {isLoading ? (
-                      <RefreshCw className="w-4 h-4 animate-spin text-[#0D0E12]" />
-                    ) : (
-                      <>
-                        <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
-                        <span>Confirmar e Entrar</span>
-                      </>
-                    )}
-                  </button>
-                </form>
+                </div>
               )}
             </>
           )}
@@ -511,7 +456,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                   <RefreshCw className="w-4 h-4 animate-spin text-[#0D0E12]" />
                 ) : (
                   <>
-                    <span>{authMode === 'cadastro' ? 'Finalizar Cadastro' : 'Entrar no Sistema'}</span>
+                    <span>{authMode === 'cadastro' ? 'Finalizar Cadastro' : 'Entrar com Senha'}</span>
                     <ArrowRight className="w-4 h-4 stroke-[2.5]" />
                   </>
                 )}
@@ -523,7 +468,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
         {/* Rodapé de Segurança */}
         <div className="flex items-center justify-center gap-2 text-xs text-[#8B95A5] mt-6">
           <ShieldCheck className="w-4 h-4 text-[#11C76F]" />
-          <span>EnablePay • Autenticação segura por E-mail OTP</span>
+          <span>EnablePay • Autenticação segura via Magic Link e Senha</span>
         </div>
       </div>
     </div>

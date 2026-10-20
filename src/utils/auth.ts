@@ -5,25 +5,12 @@ export interface UserProfile {
   name: string;
   phone?: string;
   email?: string;
-  authMethod: 'email_otp' | 'sms' | 'password';
+  authMethod: 'magic_link' | 'password';
   createdAt: string;
 }
 
 const STORAGE_AUTH_USER = 'enablepay_user_profile';
 const STORAGE_REGISTERED_USERS = 'enablepay_registered_users';
-const OTP_STORE_KEY = 'enablepay_temp_otp_store';
-
-// Formatação brasileira de celular: (11) 99999-9999
-export const formatPhoneMask = (value: string): string => {
-  const digits = value.replace(/\D/g, '').slice(0, 11);
-  if (digits.length <= 2) return digits;
-  if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
-  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
-};
-
-export const cleanPhoneDigits = (value: string): string => {
-  return value.replace(/\D/g, '');
-};
 
 export const isValidEmail = (email: string): boolean => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
@@ -57,13 +44,13 @@ export const logoutCurrentUser = (): void => {
 };
 
 // ============================================================================
-// --- ENVIO E VERIFICAÇÃO DE CÓDIGO OTP VIA E-MAIL (SUPABASE + SIMULAÇÃO) ---
+// --- ENVIO DO LINK MÁGICO (MAGIC LINK VIA SUPABASE AUTH) ---
 // ============================================================================
 
-export const sendEmailOtp = async (
+export const sendMagicLink = async (
   rawEmail: string,
   name?: string
-): Promise<{ success: boolean; simulatedCode?: string; isRealEmail: boolean; message: string }> => {
+): Promise<{ success: boolean; isRealEmail: boolean; message: string }> => {
   const cleanEmail = rawEmail.trim().toLowerCase();
   if (!isValidEmail(cleanEmail)) {
     return { success: false, isRealEmail: false, message: 'Digite um endereço de e-mail válido (ex: seu@email.com).' };
@@ -88,184 +75,43 @@ export const sendEmailOtp = async (
           return {
             success: true,
             isRealEmail: true,
-            message: `E-mail enviado para ${cleanEmail}! Você pode clicar no link ou digitar o código abaixo.`,
+            message: `Link Mágico enviado para ${cleanEmail}! Abra seu e-mail e clique no link para entrar.`,
           };
         } else {
-          console.error('[EnablePay] Supabase email OTP error:', error.message);
+          console.error('[EnablePay] Supabase Magic Link error:', error.message);
           return {
             success: false,
             isRealEmail: true,
             message: error.message.includes('rate limit') || error.message.includes('security')
-              ? 'Aguarde 60 segundos antes de solicitar um novo código.'
+              ? 'Por segurança, aguarde 60 segundos antes de solicitar um novo link.'
               : `Supabase: ${error.message}`,
           };
         }
       }
     } catch (err: any) {
-      console.warn('[EnablePay] Erro de rede ao conectar Supabase OTP:', err);
+      console.warn('[EnablePay] Erro de rede ao conectar Supabase:', err);
     }
   }
 
-  // Fallback se o Supabase não estiver configurado no Vercel/Ambiente:
-  const generatedCode = String(Math.floor(100000 + Math.random() * 900000));
-  try {
-    const otpData = {
-      type: 'email',
-      target: cleanEmail,
-      code: generatedCode,
-      expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutos
-    };
-    sessionStorage.setItem(OTP_STORE_KEY, JSON.stringify(otpData));
-  } catch {}
-
+  // Fallback para modo demonstração
   return {
     success: true,
-    simulatedCode: generatedCode,
     isRealEmail: false,
-    message: `Ambiente de teste: código gerado para ${cleanEmail}.`,
+    message: `Link Mágico gerado para ${cleanEmail}.`,
   };
 };
 
-export const verifyEmailOtp = async (
-  rawEmail: string,
-  code: string,
-  name?: string
-): Promise<{ success: boolean; user?: UserProfile; message: string }> => {
-  const cleanEmail = rawEmail.trim().toLowerCase();
-  const cleanCode = code.trim();
-
-  // 1. Tenta validação real no Supabase caso configurado
-  if (isSupabaseConfigured()) {
-    try {
-      const client = getSupabaseClient();
-      if (client) {
-        const { data, error } = await client.auth.verifyOtp({
-          email: cleanEmail,
-          token: cleanCode,
-          type: 'email',
-        });
-
-        if (!error && data?.user) {
-          const derivedName =
-            name?.trim() ||
-            data.user.user_metadata?.name ||
-            cleanEmail.split('@')[0];
-
-          const user: UserProfile = {
-            id: data.user.id || `usr_${Date.now()}`,
-            name: derivedName,
-            email: cleanEmail,
-            authMethod: 'email_otp',
-            createdAt: new Date().toISOString(),
-          };
-          saveCurrentUser(user);
-          return { success: true, user, message: 'Autenticado via E-mail OTP com sucesso!' };
-        } else if (error) {
-          console.warn('[EnablePay] Supabase verifyOtp error:', error.message);
-          if (cleanCode !== '123456') {
-            return {
-              success: false,
-              message: error.message.includes('expired')
-                ? 'Código expirado. Solicite um novo código.'
-                : 'Código de 6 dígitos incorreto. Verifique o código recebido no e-mail.',
-            };
-          }
-        }
-      }
-    } catch (err: any) {
-      console.warn('[EnablePay] Erro ao validar OTP via Supabase:', err);
-    }
-  }
-
-  // 2. Validação local do código OTP
-  try {
-    const raw = sessionStorage.getItem(OTP_STORE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed.target === cleanEmail || parsed.phone === cleanEmail) {
-        if (Date.now() > parsed.expiresAt) {
-          return { success: false, message: 'Código expirado. Solicite um novo código por e-mail.' };
-        }
-        if (parsed.code === cleanCode || cleanCode === '123456') {
-          sessionStorage.removeItem(OTP_STORE_KEY);
-          const user: UserProfile = {
-            id: `usr_${Date.now()}`,
-            name: name?.trim() || cleanEmail.split('@')[0],
-            email: cleanEmail,
-            authMethod: 'email_otp',
-            createdAt: new Date().toISOString(),
-          };
-          saveCurrentUser(user);
-          return { success: true, user, message: 'Autenticado com sucesso!' };
-        }
-      }
-    }
-  } catch {}
-
-  // Código mestre de teste
-  if (cleanCode === '123456') {
-    const user: UserProfile = {
-      id: `usr_${Date.now()}`,
-      name: name?.trim() || cleanEmail.split('@')[0],
-      email: cleanEmail,
-      authMethod: 'email_otp',
-      createdAt: new Date().toISOString(),
-    };
-    saveCurrentUser(user);
-    return { success: true, user, message: 'Autenticado com sucesso!' };
-  }
-
-  return { success: false, message: 'Código de verificação incorreto. Verifique os 6 dígitos digitados.' };
-};
-
-// ============================================================================
-// --- SMS COMPATIBILITY LAYER ---
-// ============================================================================
-
-export const sendSmsOtp = async (
-  rawPhone: string
-): Promise<{ success: boolean; simulatedCode?: string; isRealSms: boolean; message: string }> => {
-  const digits = cleanPhoneDigits(rawPhone);
-  if (digits.length < 10 || digits.length > 11) {
-    return { success: false, isRealSms: false, message: 'Digite um celular válido com DDD.' };
-  }
-
-  const generatedCode = String(Math.floor(100000 + Math.random() * 900000));
-  try {
-    const otpData = {
-      type: 'phone',
-      target: digits,
-      code: generatedCode,
-      expiresAt: Date.now() + 5 * 60 * 1000,
-    };
-    sessionStorage.setItem(OTP_STORE_KEY, JSON.stringify(otpData));
-  } catch {}
-
-  return {
-    success: true,
-    simulatedCode: generatedCode,
-    isRealSms: false,
-    message: `Código gerado pelo sistema para ${formatPhoneMask(digits)}.`,
-  };
-};
-
-export const verifySmsOtp = async (
-  rawPhone: string,
-  code: string,
-  name?: string
-): Promise<{ success: boolean; user?: UserProfile; message: string }> => {
-  const digits = cleanPhoneDigits(rawPhone);
-  const cleanCode = code.trim();
-
-  const user: UserProfile = {
+export const loginWithSimulatedMagicLink = (email: string, name?: string): UserProfile => {
+  const cleanEmail = email.trim().toLowerCase();
+  const profile: UserProfile = {
     id: `usr_${Date.now()}`,
-    name: name?.trim() || `Usuário ${digits.slice(-4)}`,
-    phone: digits,
-    authMethod: 'sms',
+    name: name?.trim() || cleanEmail.split('@')[0],
+    email: cleanEmail,
+    authMethod: 'magic_link',
     createdAt: new Date().toISOString(),
   };
-  saveCurrentUser(user);
-  return { success: true, user, message: 'Autenticado com sucesso!' };
+  saveCurrentUser(profile);
+  return profile;
 };
 
 // ============================================================================
@@ -287,13 +133,13 @@ export const registerWithPassword = async (
 ): Promise<{ success: boolean; user?: UserProfile; message: string }> => {
   const cleanIdent = emailOrPhone.trim().toLowerCase();
   if (!name.trim()) return { success: false, message: 'Informe seu nome completo.' };
-  if (!cleanIdent) return { success: false, message: 'Informe seu e-mail ou celular.' };
+  if (!cleanIdent) return { success: false, message: 'Informe seu e-mail ou usuário.' };
   if (password.length < 4) return { success: false, message: 'A senha deve ter no mínimo 4 dígitos.' };
 
   const users = getRegisteredUsers();
   const exists = users.find((u) => u.identifier === cleanIdent);
   if (exists) {
-    return { success: false, message: 'Este e-mail já está cadastrado. Faça login.' };
+    return { success: false, message: 'Este usuário já está cadastrado. Faça login.' };
   }
 
   const newUser = {
@@ -311,7 +157,6 @@ export const registerWithPassword = async (
     id: newUser.id,
     name: newUser.name,
     email: cleanIdent.includes('@') ? cleanIdent : undefined,
-    phone: !cleanIdent.includes('@') ? cleanIdent : undefined,
     authMethod: 'password',
     createdAt: newUser.createdAt,
   };
@@ -347,7 +192,6 @@ export const loginWithPassword = async (
       id: found.id,
       name: found.name,
       email: found.identifier.includes('@') ? found.identifier : undefined,
-      phone: !found.identifier.includes('@') ? found.identifier : undefined,
       authMethod: 'password',
       createdAt: found.createdAt,
     };

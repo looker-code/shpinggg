@@ -81,7 +81,7 @@ export default function App() {
               id: session.user.id,
               name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Usuário',
               email: session.user.email,
-              authMethod: 'email_otp',
+              authMethod: 'magic_link',
               createdAt: session.user.created_at || new Date().toISOString(),
             };
             saveCurrentUser(profile);
@@ -96,7 +96,7 @@ export default function App() {
               id: session.user.id,
               name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Usuário',
               email: session.user.email,
-              authMethod: 'email_otp',
+              authMethod: 'magic_link',
               createdAt: session.user.created_at || new Date().toISOString(),
             };
             saveCurrentUser(profile);
