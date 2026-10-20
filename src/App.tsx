@@ -18,6 +18,7 @@ import {
   saveAccountToSupabase,
   deleteAccountFromSupabase
 } from './utils/supabase';
+import { getCurrentUser, logoutCurrentUser, UserProfile } from './utils/auth';
 import { LoginScreen } from './components/LoginScreen';
 import { Header } from './components/Header';
 import { DashboardTab } from './components/DashboardTab';
@@ -32,6 +33,10 @@ export default function App() {
       localStorage.getItem('enablepay_auth_v1') === 'true' ||
       localStorage.getItem('promissory_auth_picpay_v3') === 'true'
     );
+  });
+
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
+    return getCurrentUser();
   });
 
   const [activeTab, setActiveTab] = useState<'inicio' | 'a-pagar'>('inicio');
@@ -75,16 +80,21 @@ export default function App() {
     }, 3800);
   };
 
-  const handleLogin = () => {
+  const handleLogin = (user?: UserProfile) => {
     localStorage.setItem('enablepay_auth_v1', 'true');
     localStorage.setItem('promissory_auth_picpay_v3', 'true');
+    if (user) {
+      setCurrentUser(user);
+    } else {
+      setCurrentUser(getCurrentUser());
+    }
     setIsAuthenticated(true);
-    showToast('Acesso autorizado! Bem-vindo ao EnablePay.');
+    showToast(`Acesso autorizado! Bem-vindo, ${user?.name || 'Administrador'}.`);
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('enablepay_auth_v1');
-    localStorage.removeItem('promissory_auth_picpay_v3');
+    logoutCurrentUser();
+    setCurrentUser(null);
     setIsAuthenticated(false);
     showToast('Sessão finalizada com sucesso.', 'info');
   };
@@ -347,6 +357,7 @@ export default function App() {
 
       {/* Header */}
       <Header
+        currentUser={currentUser}
         activeTab={activeTab}
         onTabChange={(tab) => setActiveTab(tab)}
         onOpenNewAccount={() => setIsNewAccountModalOpen(true)}

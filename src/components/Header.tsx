@@ -9,6 +9,7 @@ import {
   User,
   ChevronDown
 } from 'lucide-react';
+import { UserProfile } from '../utils/auth';
 
 interface HeaderProps {
   activeTab: 'inicio' | 'a-pagar';
@@ -18,6 +19,7 @@ interface HeaderProps {
   onLogout: () => void;
   pendingCount: number;
   overdueCount: number;
+  currentUser?: UserProfile | null;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -28,6 +30,7 @@ export const Header: React.FC<HeaderProps> = ({
   onLogout,
   pendingCount,
   overdueCount,
+  currentUser,
 }) => {
   return (
     <header className="sticky top-0 z-30 bg-[#0D0E12]/95 backdrop-blur-md border-b border-[#262936]">
@@ -114,13 +117,26 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* User Profile Pill & Logout */}
             <div className="flex items-center gap-2 pl-2 border-l border-[#262936]">
-              <div className="w-8 h-8 rounded-full bg-[#1E212D] border border-[#262936] flex items-center justify-center text-xs font-bold text-white">
-                AD
+              <div 
+                className="w-8 h-8 rounded-full bg-[#11C76F]/15 border border-[#11C76F]/30 flex items-center justify-center text-xs font-black text-[#11C76F]"
+                title={currentUser?.name || 'Administrador'}
+              >
+                {currentUser?.name 
+                  ? currentUser.name.slice(0, 2).toUpperCase() 
+                  : 'AD'}
+              </div>
+              <div className="hidden sm:block text-left text-xs leading-tight">
+                <span className="font-bold text-white block truncate max-w-[110px]">
+                  {currentUser?.name || 'Administrador'}
+                </span>
+                <span className="text-[10px] text-[#8B95A5] block">
+                  {currentUser?.authMethod === 'sms' ? 'SMS Ativo' : 'Conectado'}
+                </span>
               </div>
               <button
                 onClick={onLogout}
                 title="Sair da Conta"
-                className="p-2 text-[#8B95A5] hover:text-[#FF453A] hover:bg-[#241318] rounded-xl transition-colors cursor-pointer"
+                className="p-2 text-[#8B95A5] hover:text-[#FF453A] hover:bg-[#241318] rounded-xl transition-colors cursor-pointer ml-1"
               >
                 <LogOut className="w-4 h-4" />
               </button>
