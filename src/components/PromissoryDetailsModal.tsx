@@ -9,7 +9,9 @@ import {
   Plus,
   CheckCheck,
   CreditCard,
-  Layers
+  Layers,
+  Trash2,
+  Sparkles
 } from 'lucide-react';
 import { DebtAccount } from '../types';
 import { formatCurrency, formatDate, calculateAccountFinancials } from '../utils/storage';
@@ -20,6 +22,8 @@ interface PromissoryDetailsModalProps {
   account: DebtAccount | null;
   onOpenPaymentModal: (account: DebtAccount) => void;
   onQuickSettle: (account: DebtAccount) => void;
+  onDeletePayment?: (accountId: string, paymentId: string) => void;
+  onRealignAmortization?: (accountId: string) => void;
 }
 
 export const PromissoryDetailsModal: React.FC<PromissoryDetailsModalProps> = ({
@@ -28,6 +32,8 @@ export const PromissoryDetailsModal: React.FC<PromissoryDetailsModalProps> = ({
   account,
   onOpenPaymentModal,
   onQuickSettle,
+  onDeletePayment,
+  onRealignAmortization,
 }) => {
   if (!isOpen || !account) return null;
 
@@ -221,14 +227,31 @@ export const PromissoryDetailsModal: React.FC<PromissoryDetailsModalProps> = ({
 
         {/* 3. HISTÓRICO DE PAGAMENTOS REALIZADOS */}
         <div className="p-6 bg-[#161821] space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <h3 className="font-bold text-sm text-white flex items-center gap-2">
               <Clock className="w-4 h-4 text-[#11C76F]" />
               <span>Histórico de Pagamentos Recebidos</span>
             </h3>
-            <span className="text-xs text-[#8B95A5]">
-              {account.payments.length} {account.payments.length === 1 ? 'pagamento' : 'pagamentos'}
-            </span>
+            <div className="flex items-center gap-2">
+              {onRealignAmortization && account.payments.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm('Deseja reorganizar os pagamentos desta conta para que todos abatam das últimas parcelas para as primeiras?')) {
+                      onRealignAmortization(account.id);
+                    }
+                  }}
+                  className="px-2.5 py-1 text-[11px] font-bold bg-[#1E212D] hover:bg-[#262936] text-[#11C76F] border border-[#11C76F]/25 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
+                  title="Reajusta as parcelas para que todos os pagamentos fiquem amortizados de trás para frente"
+                >
+                  <Sparkles className="w-3 h-3 text-[#11C76F]" />
+                  <span>Reajustar Amortização</span>
+                </button>
+              )}
+              <span className="text-xs text-[#8B95A5]">
+                {account.payments.length} {account.payments.length === 1 ? 'pagamento' : 'pagamentos'}
+              </span>
+            </div>
           </div>
 
           {account.payments.length === 0 ? (
@@ -242,8 +265,9 @@ export const PromissoryDetailsModal: React.FC<PromissoryDetailsModalProps> = ({
                   <tr>
                     <th className="p-3">Data</th>
                     <th className="p-3">Forma</th>
-                    <th className="p-3">Observação</th>
+                    <th className="p-3">Observação / Abatimento</th>
                     <th className="p-3 text-right">Valor Pago</th>
+                    {onDeletePayment && <th className="p-3 text-center w-12">Ação</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#262936] bg-[#12141A]/50">
@@ -251,10 +275,36 @@ export const PromissoryDetailsModal: React.FC<PromissoryDetailsModalProps> = ({
                     <tr key={p.id} className="hover:bg-[#1E212D]/50">
                       <td className="p-3 font-medium text-white">{formatDate(p.date)}</td>
                       <td className="p-3 font-bold uppercase text-[#11C76F]">{p.method}</td>
-                      <td className="p-3 text-[#8B95A5]">{p.note || '-'}</td>
+                      <td className="p-3 text-[#8B95A5]">
+                        <div>{p.note || '-'}</div>
+                        {p.distribution && p.distribution.length > 0 && (
+                          <div className="text-[10px] text-[#11C76F] font-bold mt-0.5 flex items-center gap-1">
+                            <span>Abatido nas últimas parcelas:</span>
+                            <span className="font-mono">
+                              {p.distribution.map((d) => `P${d.installmentNumber} (${formatCurrency(d.amount)})`).join(', ')}
+                            </span>
+                          </div>
+                        )}
+                      </td>
                       <td className="p-3 text-right font-bold text-[#11C76F]">
                         {formatCurrency(p.amount)}
                       </td>
+                      {onDeletePayment && (
+                        <td className="p-3 text-center">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (window.confirm(`Deseja realmente remover o pagamento de ${formatCurrency(p.amount)}? As parcelas serão recalculadas.`)) {
+                                onDeletePayment(account.id, p.id);
+                              }
+                            }}
+                            className="p-1.5 text-[#8B95A5] hover:text-[#FF453A] hover:bg-[#FF3B30]/10 rounded-lg transition-colors cursor-pointer"
+                            title="Remover este pagamento e recalcular parcelas"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>

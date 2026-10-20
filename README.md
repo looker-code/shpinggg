@@ -1,20 +1,26 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# EnablePay
 
-# Run and deploy your AI Studio app
+Sistema de gestão financeira inteligente, controle de notas promissórias, contas a pagar, amortizações e quitações.
 
-This contains everything you need to run your app locally.
+- **URL de Produção:** [https://enablepay.vercel.app/](https://enablepay.vercel.app/)
 
-View your app in AI Studio: https://ai.studio/apps/dab93dd8-467a-4faf-a116-03a1871370dc
+## Funcionalidades
+- **Gestão de Dívidas e Promissórias:** Cadastro de contas por pessoa, especificação de débitos e cálculo automático de parcelamento.
+- **Amortização Inteligente:** Abatimento de pagamentos das últimas parcelas em aberto para as primeiras (redução do prazo da dívida).
+- **Extrato Completo:** Acompanhamento de parcelas pagas, pendentes e histórico detalhado de quitações com impressão de comprovante.
+- **Segurança de Dados:** Persistência em localStorage com migração automática e redundância.
 
-## Run Locally
+## Executando Localmente
 
-**Prerequisites:**  Node.js
-
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+1. Instale as dependências:
+   ```bash
+   npm install
+   ```
+2. Inicie o servidor de desenvolvimento:
+   ```bash
+   npm run dev
+   ```
+3. Para compilar a versão de produção:
+   ```bash
+   npm run build
+   ```

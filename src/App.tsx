@@ -7,7 +7,9 @@ import {
   calculateAccountFinancials, 
   calculateDashboardSummary,
   generateInstallments,
-  distributePayment
+  distributePayment,
+  recalculateAccountFromPayments,
+  formatCurrency
 } from './utils/storage';
 import { LoginScreen } from './components/LoginScreen';
 import { Header } from './components/Header';
@@ -19,7 +21,10 @@ import { PromissoryDetailsModal } from './components/PromissoryDetailsModal';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return localStorage.getItem('promissory_auth_picpay_v3') === 'true';
+    return (
+      localStorage.getItem('enablepay_auth_v1') === 'true' ||
+      localStorage.getItem('promissory_auth_picpay_v3') === 'true'
+    );
   });
 
   const [activeTab, setActiveTab] = useState<'inicio' | 'a-pagar'>('inicio');
@@ -47,12 +52,14 @@ export default function App() {
   };
 
   const handleLogin = () => {
+    localStorage.setItem('enablepay_auth_v1', 'true');
     localStorage.setItem('promissory_auth_picpay_v3', 'true');
     setIsAuthenticated(true);
-    showToast('Acesso autorizado! Bem-vindo ao PromissóriaPay.');
+    showToast('Acesso autorizado! Bem-vindo ao EnablePay.');
   };
 
   const handleLogout = () => {
+    localStorage.removeItem('enablepay_auth_v1');
     localStorage.removeItem('promissory_auth_picpay_v3');
     setIsAuthenticated(false);
     showToast('Sessão finalizada com sucesso.', 'info');
@@ -97,16 +104,26 @@ export default function App() {
     showToast(`Conta de ${newAccount.debtorName} cadastrada em ${generated.length}x!`);
   };
 
-  // Adicionar pagamento com distribuição sequencial inteligente nas parcelas
+  // Adicionar pagamento com amortização nas últimas parcelas
   const handleAddPayment = (
     accountId: string,
-    paymentData: { amount: number; date: string; method: PaymentMethod; note?: string }
+    paymentData: { 
+      amount: number; 
+      date: string; 
+      method: PaymentMethod; 
+      note?: string;
+      installmentNumber?: number;
+    }
   ) => {
     setAccounts((prevAccounts) =>
       prevAccounts.map((acc) => {
         if (acc.id !== accountId) return acc;
 
-        const { updatedInstallments, distribution } = distributePayment(acc.installments, paymentData.amount);
+        const { updatedInstallments, distribution } = distributePayment(
+          acc.installments, 
+          paymentData.amount,
+          paymentData.installmentNumber
+        );
 
         const newPayment = {
           id: `pay_${Date.now()}`,
@@ -133,7 +150,7 @@ export default function App() {
           } catch {}
           showToast(`Dívida de ${acc.debtorName} foi totalmente QUITADA! Parabéns!`);
         } else {
-          showToast(`Pagamento de R$ ${paymentData.amount.toFixed(2)} abatido das parcelas!`);
+          showToast(`Amortização de ${formatCurrency(paymentData.amount)} abatida das últimas parcelas!`);
         }
 
         return {
@@ -144,6 +161,40 @@ export default function App() {
         };
       })
     );
+  };
+
+  // Excluir um pagamento específico e recalcular parcelas
+  const handleDeletePayment = (accountId: string, paymentId: string) => {
+    setAccounts((prevAccounts) =>
+      prevAccounts.map((acc) => {
+        if (acc.id !== accountId) return acc;
+
+        const remainingPayments = (acc.payments || []).filter((p) => p.id !== paymentId);
+        const accountWithFiltered = {
+          ...acc,
+          payments: remainingPayments,
+        };
+
+        return recalculateAccountFromPayments(accountWithFiltered);
+      })
+    );
+    showToast('Pagamento removido e parcelas recalculadas.');
+  };
+
+  // Reajustar todas as amortizações da conta para abater das últimas parcelas
+  const handleRealignAmortization = (accountId: string) => {
+    setAccounts((prevAccounts) =>
+      prevAccounts.map((acc) => {
+        if (acc.id !== accountId) return acc;
+        if (!acc.payments || acc.payments.length === 0) {
+          showToast('Esta conta não possui pagamentos registrados.', 'info');
+          return acc;
+        }
+
+        return recalculateAccountFromPayments(acc);
+      })
+    );
+    showToast('Amortizações reorganizadas: abatimento aplicado nas últimas parcelas!');
   };
 
   // Quitação total imediata
@@ -322,6 +373,8 @@ export default function App() {
           account={currentDetailsAccount}
           onOpenPaymentModal={(acc) => setSelectedAccountForPayment(acc)}
           onQuickSettle={handleQuickSettle}
+          onDeletePayment={handleDeletePayment}
+          onRealignAmortization={handleRealignAmortization}
         />
       )}
     </div>

@@ -39,16 +39,16 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[250px] bg-[#11C76F]/10 blur-[120px] pointer-events-none rounded-full" />
 
       <div className="w-full max-w-sm relative z-10">
-        {/* PicPay Style Brand Header */}
+        {/* EnablePay Brand Header */}
         <div className="flex flex-col items-center mb-8">
           <div className="w-14 h-14 rounded-2xl bg-[#11C76F] flex items-center justify-center mb-4 shadow-[0_8px_24px_rgba(17,199,111,0.25)]">
-            <span className="text-[#0D0E12] font-black text-2xl tracking-tighter">P</span>
+            <span className="text-[#0D0E12] font-black text-2xl tracking-tighter">E</span>
           </div>
           <h1 className="text-2xl font-extrabold tracking-tight text-white flex items-center gap-1">
-            Promissória<span className="text-[#11C76F]">Pay</span>
+            Enable<span className="text-[#11C76F]">Pay</span>
           </h1>
           <p className="text-xs text-[#8B95A5] mt-1 font-medium text-center">
-            Gestão inteligente de promissórias e títulos a pagar
+            Gestão inteligente de promissórias, amortizações e títulos a pagar
           </p>
         </div>
 

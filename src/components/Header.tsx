@@ -33,15 +33,15 @@ export const Header: React.FC<HeaderProps> = ({
     <header className="sticky top-0 z-30 bg-[#0D0E12]/95 backdrop-blur-md border-b border-[#262936]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-17">
-          {/* Logo Brand PicPay Style */}
+          {/* Logo Brand EnablePay */}
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-[#11C76F] flex items-center justify-center shadow-[0_2px_12px_rgba(17,199,111,0.25)]">
-              <span className="text-[#0D0E12] font-black text-lg tracking-tighter">P</span>
+              <span className="text-[#0D0E12] font-black text-lg tracking-tighter">E</span>
             </div>
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="text-base font-extrabold tracking-tight text-white">
-                  Promissória<span className="text-[#11C76F]">Pay</span>
+                  Enable<span className="text-[#11C76F]">Pay</span>
                 </span>
                 <span className="text-[10px] font-bold text-[#11C76F] bg-[#11C76F]/10 px-2 py-0.5 rounded-full border border-[#11C76F]/20">
                   Pro

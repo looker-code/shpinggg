@@ -31,6 +31,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   private handleClearAndReload = () => {
     try {
+      localStorage.removeItem('enablepay_accounts_v1');
       localStorage.removeItem('promissory_pay_accounts_v4');
     } catch {}
     window.location.reload();

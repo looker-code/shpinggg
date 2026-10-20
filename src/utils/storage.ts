@@ -1,6 +1,7 @@
 import { DebtAccount, Installment, DashboardSummary } from '../types';
 
-const STORAGE_KEY = 'promissory_pay_accounts_v4';
+const STORAGE_KEY = 'enablepay_accounts_v1';
+const LEGACY_V4_KEY = 'promissory_pay_accounts_v4';
 
 // --- Geração segura de parcelas ---
 export const generateInstallments = (totalAmount: number, installmentValue: number): Installment[] => {
@@ -113,40 +114,104 @@ export const sanitizeAccount = (raw: any): DebtAccount => {
   };
 };
 
-// --- Distribuição de pagamento sequencial nas parcelas ---
+// --- Distribuição de pagamento amortizado (das ÚLTIMAS parcelas para as primeiras) ---
 export const distributePayment = (
   installments: Installment[],
-  paymentAmount: number
+  paymentAmount: number,
+  targetInstallmentNumber?: number
 ): { updatedInstallments: Installment[]; distribution: { installmentNumber: number; amount: number }[] } => {
   let remaining = Math.max(0, Number(paymentAmount) || 0);
   const distribution: { installmentNumber: number; amount: number }[] = [];
-  const safeInsts = Array.isArray(installments) ? installments : [];
+  const safeInsts: Installment[] = Array.isArray(installments)
+    ? installments.map((i) => ({ ...i }))
+    : [];
 
-  const updated = safeInsts.map((inst) => {
-    if (remaining <= 0.001 || inst.status === 'pago') return { ...inst };
+  // Se o usuário selecionou uma parcela específica no modal (ex: pelo modo 'Escolher Parcela')
+  if (targetInstallmentNumber !== undefined && targetInstallmentNumber !== null) {
+    const target = safeInsts.find((i) => i.number === targetInstallmentNumber);
+    if (target && target.status !== 'pago') {
+      const orig = Math.max(0, Number(target.originalAmount) || 0);
+      const paid = Math.max(0, Number(target.paidAmount) || 0);
+      const owed = Math.max(0, Math.round((orig - paid) * 100) / 100);
 
-    const owed = Math.max(0, Math.round((inst.originalAmount - inst.paidAmount) * 100) / 100);
-    if (owed <= 0.001) {
-      return { ...inst, status: 'pago' as const, paidAmount: inst.originalAmount };
+      if (owed > 0.001) {
+        const toApply = Math.min(remaining, owed);
+        remaining = Math.round((remaining - toApply) * 100) / 100;
+
+        const newPaid = Math.round((paid + toApply) * 100) / 100;
+        const newOwed = Math.max(0, Math.round((orig - newPaid) * 100) / 100);
+
+        target.paidAmount = newPaid;
+        target.status = newOwed <= 0.001 ? 'pago' : 'parcial';
+        if (newOwed <= 0.001 && !target.paidAt) {
+          target.paidAt = new Date().toISOString();
+        }
+
+        distribution.push({ installmentNumber: target.number, amount: toApply });
+      }
     }
+  }
 
-    const toApply = Math.min(remaining, owed);
-    remaining = Math.round((remaining - toApply) * 100) / 100;
+  // Amortização: desconta das ÚLTIMAS parcelas para as primeiras (ordem decrescente pelo número da parcela)
+  if (remaining > 0.001) {
+    const sortedDesc = [...safeInsts].sort((a, b) => (b.number || 0) - (a.number || 0));
 
-    const newPaid = Math.round((inst.paidAmount + toApply) * 100) / 100;
-    const newOwed = Math.round((inst.originalAmount - newPaid) * 100) / 100;
+    for (const inst of sortedDesc) {
+      if (remaining <= 0.001) break;
 
-    distribution.push({ installmentNumber: inst.number, amount: toApply });
+      const orig = Math.max(0, Number(inst.originalAmount) || 0);
+      const paid = Math.max(0, Number(inst.paidAmount) || 0);
+      const owed = Math.max(0, Math.round((orig - paid) * 100) / 100);
 
+      if (owed <= 0.001 || inst.status === 'pago') {
+        continue;
+      }
+
+      const toApply = Math.min(remaining, owed);
+      remaining = Math.round((remaining - toApply) * 100) / 100;
+
+      const newPaid = Math.round((paid + toApply) * 100) / 100;
+      const newOwed = Math.max(0, Math.round((orig - newPaid) * 100) / 100);
+
+      inst.paidAmount = newPaid;
+      inst.status = newOwed <= 0.001 ? 'pago' : 'parcial';
+      if (newOwed <= 0.001 && !inst.paidAt) {
+        inst.paidAt = new Date().toISOString();
+      }
+
+      distribution.push({ installmentNumber: inst.number, amount: toApply });
+    }
+  }
+
+  return { updatedInstallments: safeInsts, distribution };
+};
+
+// --- Recalcula todas as parcelas de uma conta aplicando os pagamentos como amortização (das últimas) ---
+export const recalculateAccountFromPayments = (account: DebtAccount): DebtAccount => {
+  const safeAccount = sanitizeAccount(account);
+  const baseInstallments = generateInstallments(safeAccount.totalAmount, safeAccount.installmentValue);
+  
+  let currentInsts = baseInstallments;
+  const updatedPayments = (safeAccount.payments || []).map((p) => {
+    const { updatedInstallments, distribution } = distributePayment(currentInsts, p.amount);
+    currentInsts = updatedInstallments;
     return {
-      ...inst,
-      paidAmount: newPaid,
-      status: newOwed <= 0.001 ? ('pago' as const) : ('parcial' as const),
-      paidAt: newOwed <= 0.001 ? new Date().toISOString() : inst.paidAt,
+      ...p,
+      distribution,
     };
   });
 
-  return { updatedInstallments: updated, distribution };
+  const { computedStatus } = calculateAccountFinancials({
+    ...safeAccount,
+    installments: currentInsts,
+  });
+
+  return {
+    ...safeAccount,
+    installments: currentInsts,
+    payments: updatedPayments,
+    status: computedStatus,
+  };
 };
 
 // --- Cálculos de status da conta ---
@@ -313,6 +378,7 @@ export const SEED_ACCOUNTS: DebtAccount[] = [
 
 // --- Persistência Segura ---
 export const loadAccounts = (): DebtAccount[] => {
+  // 1. Tenta carregar pela chave atual do EnablePay
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
@@ -322,8 +388,21 @@ export const loadAccounts = (): DebtAccount[] => {
       }
     }
   } catch {}
+
+  // 2. Tenta migrar da chave v4 (PromissóriaPay)
+  try {
+    const rawV4 = localStorage.getItem(LEGACY_V4_KEY);
+    if (rawV4) {
+      const parsedV4 = JSON.parse(rawV4);
+      if (Array.isArray(parsedV4) && parsedV4.length > 0) {
+        const sanitized = parsedV4.map(sanitizeAccount);
+        saveAccounts(sanitized);
+        return sanitized;
+      }
+    }
+  } catch {}
   
-  // Tenta migrar da chave v3 caso exista
+  // 3. Tenta migrar da chave v3 caso exista
   try {
     const rawV3 = localStorage.getItem('promissory_pay_accounts_v3');
     if (rawV3) {
@@ -336,7 +415,7 @@ export const loadAccounts = (): DebtAccount[] => {
     }
   } catch {}
 
-  // Tenta migrar da base antiga de promissórias se existir
+  // 4. Tenta migrar da base antiga de promissórias se existir
   try {
     const rawLegacy = localStorage.getItem('promissory_notes_db');
     if (rawLegacy) {
@@ -357,6 +436,8 @@ export const loadAccounts = (): DebtAccount[] => {
 export const saveAccounts = (accounts: DebtAccount[]): void => {
   try {
     const safe = Array.isArray(accounts) ? accounts.map(sanitizeAccount) : [];
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(safe));
+    const json = JSON.stringify(safe);
+    localStorage.setItem(STORAGE_KEY, json);
+    localStorage.setItem(LEGACY_V4_KEY, json);
   } catch {}
 };

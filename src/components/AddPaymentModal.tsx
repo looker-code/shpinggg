@@ -12,7 +12,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { DebtAccount, PaymentMethod } from '../types';
-import { formatCurrency, calculateAccountFinancials } from '../utils/storage';
+import { formatCurrency, calculateAccountFinancials, distributePayment } from '../utils/storage';
 
 interface AddPaymentModalProps {
   isOpen: boolean;
@@ -22,7 +22,13 @@ interface AddPaymentModalProps {
   onOpenNewAccount?: () => void;
   onAddPayment: (
     accountId: string,
-    paymentData: { amount: number; date: string; method: PaymentMethod; note?: string }
+    paymentData: { 
+      amount: number; 
+      date: string; 
+      method: PaymentMethod; 
+      note?: string;
+      installmentNumber?: number;
+    }
   ) => void;
 }
 
@@ -132,65 +138,51 @@ export const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
     ? Math.min(100, Math.round((simulatedNewPaid / activeAccount.totalAmount) * 100))
     : 100;
 
-  // Simulação detalhada da quebra do valor X nas parcelas (cálculo reativo instantâneo)
+  // Simulação detalhada da amortização nas parcelas (cálculo reativo instantâneo)
   const installmentSimulation = (() => {
     if (numericAmount <= 0) return [];
 
-    let remainingMoney = numericAmount;
-    const simList: {
-      number: number;
-      originalAmount: number;
-      currentPaid: number;
-      addedAmount: number;
-      finalPaid: number;
-      isNowSettled: boolean;
-      remainsOwed: number;
-    }[] = [];
+    const { distribution } = distributePayment(
+      installments,
+      numericAmount,
+      selectedInstallmentNumber || undefined
+    );
 
-    installments.forEach((inst) => {
+    const distMap = new Map<number, number>();
+    distribution.forEach((d) => {
+      distMap.set(d.installmentNumber, (distMap.get(d.installmentNumber) || 0) + d.amount);
+    });
+
+    return installments.map((inst) => {
       const orig = Number(inst.originalAmount) || 0;
       const currentPaid = Number(inst.paidAmount) || 0;
-      const alreadySettled = inst.status === 'pago' || currentPaid >= orig - 0.001;
-
-      if (alreadySettled) {
-        simList.push({
-          number: inst.number,
-          originalAmount: orig,
-          currentPaid,
-          addedAmount: 0,
-          finalPaid: currentPaid,
-          isNowSettled: true,
-          remainsOwed: 0,
-        });
-        return;
-      }
-
-      const owed = Math.max(0, Math.round((orig - currentPaid) * 100) / 100);
-      const apply = Math.min(remainingMoney, owed);
-      remainingMoney = Math.round((remainingMoney - apply) * 100) / 100;
-
-      const finalPaid = Math.round((currentPaid + apply) * 100) / 100;
+      const addedAmount = distMap.get(inst.number) || 0;
+      const finalPaid = Math.min(orig, Math.round((currentPaid + addedAmount) * 100) / 100);
       const remainsOwed = Math.max(0, Math.round((orig - finalPaid) * 100) / 100);
-      const isNowSettled = remainsOwed <= 0.001;
+      const isNowSettled = inst.status === 'pago' || remainsOwed <= 0.001;
 
-      simList.push({
+      return {
         number: inst.number,
         originalAmount: orig,
         currentPaid,
-        addedAmount: apply,
+        addedAmount,
         finalPaid,
         isNowSettled,
         remainsOwed,
-      });
+      };
     });
-
-    return simList;
   })();
 
-  // Próxima parcela em aberto para pagamento rápido
-  const nextOpenInstallment = installments.find(
-    (inst) => inst.status !== 'pago' && inst.paidAmount < inst.originalAmount - 0.001
-  );
+  const affectedInstallments = installmentSimulation
+    .filter((sim) => sim.addedAmount > 0)
+    .sort((a, b) => b.number - a.number);
+
+  const untouchedCount = installmentSimulation.filter((sim) => sim.addedAmount === 0).length;
+
+  // Última parcela em aberto (para amortização de trás para frente)
+  const lastOpenInstallment = [...installments]
+    .sort((a, b) => b.number - a.number)
+    .find((inst) => inst.status !== 'pago' && inst.paidAmount < inst.originalAmount - 0.001);
 
   // Selecionar parcela específica para pagar
   const handleSelectInstallment = (inst: any) => {
@@ -226,7 +218,8 @@ export const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
       amount: parsedAmount,
       date,
       method,
-      note: noteText.trim() || (selectedInstallmentNumber ? `Parcela ${selectedInstallmentNumber}` : undefined),
+      note: noteText.trim() || (selectedInstallmentNumber ? `Parcela ${selectedInstallmentNumber}` : 'Amortização de parcelas'),
+      installmentNumber: selectedInstallmentNumber || undefined,
     });
 
     onClose();
@@ -319,7 +312,7 @@ export const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
             </div>
           </div>
 
-          {/* Abas de Modo: Digitar Valor X vs Pagar Parcela */}
+          {/* Abas de Modo: Amortizar Valor X vs Escolher Parcela */}
           <div className="grid grid-cols-2 gap-1.5 bg-[#12141A] p-1 rounded-xl border border-[#262936] mt-3">
             <button
               type="button"
@@ -334,15 +327,15 @@ export const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
               }`}
             >
               <Calculator className="w-3.5 h-3.5" />
-              <span>Digitar Valor X (Recálculo)</span>
+              <span>Amortizar Valor (Últimas Parcelas)</span>
             </button>
 
             <button
               type="button"
               onClick={() => {
                 setPayMode('parcela');
-                if (nextOpenInstallment) {
-                  handleSelectInstallment(nextOpenInstallment);
+                if (lastOpenInstallment) {
+                  handleSelectInstallment(lastOpenInstallment);
                 }
               }}
               className={`py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
@@ -468,25 +461,34 @@ export const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
               />
             </div>
 
+            {/* Indicador de amortização */}
+            <div className="flex items-center gap-1.5 text-[11px] text-[#11C76F] mt-1.5 font-medium">
+              <Sparkles className="w-3.5 h-3.5 shrink-0" />
+              <span>Amortização ativa: o pagamento desconta das últimas parcelas para as primeiras.</span>
+            </div>
+
             {/* Botões de Atalho Rápido */}
             <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-              {nextOpenInstallment && (
+              {lastOpenInstallment && (
                 <button
                   type="button"
-                  onClick={() => handleSelectInstallment(nextOpenInstallment)}
+                  onClick={() => {
+                    const owed = Math.max(0, Math.round((lastOpenInstallment.originalAmount - lastOpenInstallment.paidAmount) * 100) / 100);
+                    handleSetAmount(owed);
+                  }}
                   className="px-3 py-1.5 text-xs font-bold bg-[#1E212D] hover:bg-[#262936] border border-[#262936] text-[#8B95A5] hover:text-white rounded-lg cursor-pointer transition-colors"
                 >
-                  Pagar P{nextOpenInstallment.number} ({formatCurrency(nextOpenInstallment.originalAmount - nextOpenInstallment.paidAmount)})
+                  Amortizar P{lastOpenInstallment.number} ({formatCurrency(lastOpenInstallment.originalAmount - lastOpenInstallment.paidAmount)})
                 </button>
               )}
 
-              {activeAccount.installmentValue > 0 && activeAccount.installmentValue * 2 < totalRemaining && (
+              {activeAccount.installmentValue > 0 && activeAccount.installmentValue * 2 <= totalRemaining && (
                 <button
                   type="button"
-                  onClick={() => handleSetAmount(activeAccount.installmentValue * 2)}
+                  onClick={() => handleSetAmount(Math.min(totalRemaining, activeAccount.installmentValue * 2))}
                   className="px-3 py-1.5 text-xs font-bold bg-[#1E212D] hover:bg-[#262936] border border-[#262936] text-[#8B95A5] hover:text-white rounded-lg cursor-pointer transition-colors"
                 >
-                  2 Parcelas ({formatCurrency(activeAccount.installmentValue * 2)})
+                  Amortizar 2 Parcelas ({formatCurrency(Math.min(totalRemaining, activeAccount.installmentValue * 2))})
                 </button>
               )}
 
@@ -506,10 +508,10 @@ export const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
               <div className="flex items-center justify-between border-b border-[#262936] pb-2">
                 <span className="text-xs font-extrabold text-[#11C76F] flex items-center gap-1.5 uppercase tracking-wider">
                   <Sparkles className="w-3.5 h-3.5" />
-                  Recálculo em Tempo Real
+                  Simulação da Amortização
                 </span>
                 <span className="text-[11px] font-bold text-white">
-                  {simulatedNewPercent}% quitado após este pagamento
+                  {simulatedNewPercent}% quitado após este abatimento
                 </span>
               </div>
 
@@ -520,7 +522,7 @@ export const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
                   <span className="font-bold text-white">{formatCurrency(totalRemaining)}</span>
                 </div>
                 <div className="bg-[#161821] p-2.5 rounded-xl border border-[#262936]">
-                  <span className="text-[10px] text-[#11C76F] block">Abatimento</span>
+                  <span className="text-[10px] text-[#11C76F] block">Amortização</span>
                   <span className="font-bold text-[#11C76F]">- {formatCurrency(numericAmount)}</span>
                 </div>
                 <div className="bg-[#161821] p-2.5 rounded-xl border border-[#262936]">
@@ -529,34 +531,35 @@ export const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
                 </div>
               </div>
 
-              {/* Como as parcelas serão quebradas */}
+              {/* Como as parcelas serão amortizadas */}
               {installmentSimulation.length > 0 && (
                 <div className="space-y-1.5 pt-1">
-                  <span className="text-[11px] font-bold text-[#8B95A5] block">
-                    Distribuição nas Parcelas:
-                  </span>
-                  <div className="space-y-1 max-h-36 overflow-y-auto pr-1">
-                    {installmentSimulation.map((sim) => (
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-[#8B95A5] block">
+                      Abatimento nas Parcelas (das últimas para as primeiras):
+                    </span>
+                    <span className="text-[10px] font-bold text-[#11C76F] bg-[#11C76F]/10 border border-[#11C76F]/20 px-2 py-0.5 rounded-full">
+                      Amortização de trás p/ frente
+                    </span>
+                  </div>
+
+                  <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
+                    {/* Parcelas que estão recebendo o abatimento, da última para a primeira */}
+                    {affectedInstallments.map((sim) => (
                       <div 
                         key={sim.number} 
-                        className={`p-2 rounded-xl border text-xs flex items-center justify-between ${
-                          sim.addedAmount > 0 
-                            ? 'bg-[#161821] border-[#11C76F]/30' 
-                            : 'bg-[#12141A] border-[#262936] opacity-60'
-                        }`}
+                        className="p-2.5 rounded-xl border text-xs flex items-center justify-between bg-[#161821] border-[#11C76F]/40 shadow-xs"
                       >
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-white">Parcela {sim.number}</span>
-                          {sim.addedAmount > 0 && (
-                            <span className="text-[10px] font-extrabold text-[#11C76F] bg-[#11C76F]/10 px-1.5 py-0.2 rounded">
-                              +{formatCurrency(sim.addedAmount)}
-                            </span>
-                          )}
+                          <span className="font-extrabold text-white">Parcela {sim.number}</span>
+                          <span className="text-[10px] font-extrabold text-[#11C76F] bg-[#11C76F]/15 border border-[#11C76F]/25 px-2 py-0.5 rounded-md">
+                            -{formatCurrency(sim.addedAmount)}
+                          </span>
                         </div>
 
                         <div>
                           {sim.isNowSettled ? (
-                            <span className="text-[10px] font-bold text-[#11C76F] bg-[#11C76F]/20 px-2 py-0.5 rounded-full">
+                            <span className="text-[10px] font-extrabold text-[#11C76F] bg-[#11C76F]/20 px-2.5 py-0.5 rounded-full">
                               Quitada ✓
                             </span>
                           ) : (
@@ -567,6 +570,20 @@ export const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
                         </div>
                       </div>
                     ))}
+
+                    {/* Resumo de parcelas iniciais não tocadas */}
+                    {untouchedCount > 0 && (
+                      <div className="p-2 rounded-xl border border-[#262936] bg-[#12141A] text-[11px] text-[#8B95A5] flex items-center justify-between">
+                        <span>
+                          {untouchedCount === 1
+                            ? '1 parcela inicial permanece intacta (não descontada).'
+                            : `${untouchedCount} parcelas iniciais permanecem intactas (não descontadas).`}
+                        </span>
+                        <span className="text-[10px] text-[#8B95A5] font-mono">
+                          (P1{untouchedCount > 1 ? ` a P${untouchedCount}` : ''})
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -622,7 +639,7 @@ export const AddPaymentModal: React.FC<AddPaymentModalProps> = ({
               type="text"
               value={noteText}
               onChange={(e) => setNoteText(e.target.value)}
-              placeholder="Ex: Parcela 1 paga via Pix PicPay"
+              placeholder="Ex: Amortização paga via Pix EnablePay"
               className="w-full px-3.5 py-2.5 bg-[#12141A] border border-[#262936] rounded-xl text-xs sm:text-sm text-white placeholder-[#5F6876] focus:outline-none focus:border-[#11C76F]"
             />
           </div>
