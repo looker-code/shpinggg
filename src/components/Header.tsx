@@ -130,7 +130,11 @@ export const Header: React.FC<HeaderProps> = ({
                   {currentUser?.name || 'Administrador'}
                 </span>
                 <span className="text-[10px] text-[#8B95A5] block">
-                  {currentUser?.authMethod === 'sms' ? 'SMS Ativo' : 'Conectado'}
+                  {currentUser?.authMethod === 'email_otp'
+                    ? 'E-mail OTP'
+                    : currentUser?.authMethod === 'sms'
+                    ? 'SMS Ativo'
+                    : 'Conectado'}
                 </span>
               </div>
               <button

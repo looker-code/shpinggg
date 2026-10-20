@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Smartphone, 
+  Mail, 
   Lock, 
   User, 
   ArrowRight, 
@@ -11,16 +11,15 @@ import {
   EyeOff, 
   RefreshCw, 
   KeyRound, 
-  MessageSquareCode,
-  ArrowLeft
+  ArrowLeft,
+  Inbox
 } from 'lucide-react';
 import { 
-  formatPhoneMask, 
-  cleanPhoneDigits, 
-  sendSmsOtp, 
-  verifySmsOtp, 
+  sendEmailOtp, 
+  verifyEmailOtp, 
   loginWithPassword, 
   registerWithPassword,
+  isValidEmail,
   UserProfile 
 } from '../utils/auth';
 
@@ -31,28 +30,28 @@ interface LoginScreenProps {
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
   // Modos principais: 'login' | 'cadastro'
   const [authMode, setAuthMode] = useState<'login' | 'cadastro'>('login');
-  // Método de autenticação: 'sms' | 'senha'
-  const [authMethod, setAuthMethod] = useState<'sms' | 'senha'>('sms');
+  // Método de autenticação: 'email_otp' | 'senha'
+  const [authMethod, setAuthMethod] = useState<'email_otp' | 'senha'>('email_otp');
 
   // Campos do formulário
   const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [identifier, setIdentifier] = useState('admin');
   const [password, setPassword] = useState('123456');
   const [showPassword, setShowPassword] = useState(false);
 
-  // Estados do fluxo de SMS OTP
-  const [smsStep, setSmsStep] = useState<'enter_phone' | 'enter_code'>('enter_phone');
+  // Estados do fluxo de E-mail OTP
+  const [emailStep, setEmailStep] = useState<'enter_email' | 'enter_code'>('enter_email');
   const [otpCode, setOtpCode] = useState('');
   const [countdown, setCountdown] = useState(0);
-  const [simulatedSmsToast, setSimulatedSmsToast] = useState<{ phone: string; code: string } | null>(null);
+  const [simulatedEmailToast, setSimulatedEmailToast] = useState<{ email: string; code: string } | null>(null);
 
   // Estados de feedback
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
-  // Contador para reenvio de SMS
+  // Contador para reenvio de código por e-mail
   useEffect(() => {
     if (countdown > 0) {
       const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
@@ -60,13 +59,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
     }
   }, [countdown]);
 
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPhone(formatPhoneMask(e.target.value));
-    setErrorMessage('');
-  };
-
-  // --- Enviar Código SMS ---
-  const handleRequestSmsCode = async (e: React.FormEvent) => {
+  // --- Enviar Código OTP para o E-mail ---
+  const handleRequestEmailCode = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
     setSuccessMessage('');
@@ -76,26 +70,25 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
       return;
     }
 
-    const digits = cleanPhoneDigits(phone);
-    if (digits.length < 10) {
-      setErrorMessage('Digite seu número de celular com DDD (ex: 11 99999-9999).');
+    const cleanEmail = email.trim().toLowerCase();
+    if (!isValidEmail(cleanEmail)) {
+      setErrorMessage('Digite um endereço de e-mail válido (ex: seu@email.com).');
       return;
     }
 
     setIsLoading(true);
     try {
-      const res = await sendSmsOtp(digits);
+      const res = await sendEmailOtp(cleanEmail);
       setIsLoading(false);
 
       if (res.success) {
-        setSmsStep('enter_code');
+        setEmailStep('enter_code');
         setCountdown(60);
         setSuccessMessage(res.message);
 
-        // Se for gerado pelo próprio sistema (sem gateway de SMS ativo), exibe a notificação visual do SMS
+        // Se for gerado em modo teste/simulação direta, exibe a notificação visual do e-mail
         if (res.simulatedCode) {
-          setSimulatedSmsToast({ phone, code: res.simulatedCode });
-          // Preenche automaticamente como facilitador caso deseje
+          setSimulatedEmailToast({ email: cleanEmail, code: res.simulatedCode });
           setOtpCode(res.simulatedCode);
         }
       } else {
@@ -103,38 +96,38 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
       }
     } catch {
       setIsLoading(false);
-      setErrorMessage('Erro ao solicitar código SMS. Tente novamente.');
+      setErrorMessage('Erro ao solicitar código de verificação por e-mail.');
     }
   };
 
-  // --- Confirmar Código SMS ---
-  const handleVerifySmsCode = async (e: React.FormEvent) => {
+  // --- Validar Código OTP recebido por E-mail ---
+  const handleVerifyEmailCode = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
 
     if (otpCode.trim().length < 6) {
-      setErrorMessage('Digite o código de 6 dígitos recebido por SMS.');
+      setErrorMessage('Digite o código de 6 dígitos enviado para seu e-mail.');
       return;
     }
 
     setIsLoading(true);
     try {
-      const res = await verifySmsOtp(phone, otpCode, name);
+      const res = await verifyEmailOtp(email, otpCode, name);
       setIsLoading(false);
 
       if (res.success && res.user) {
-        setSimulatedSmsToast(null);
+        setSimulatedEmailToast(null);
         onLogin(res.user);
       } else {
         setErrorMessage(res.message);
       }
     } catch {
       setIsLoading(false);
-      setErrorMessage('Erro ao validar código SMS.');
+      setErrorMessage('Erro ao validar código OTP por e-mail.');
     }
   };
 
-  // --- Login ou Cadastro por Senha ---
+  // --- Login ou Cadastro por Senha Tradicional ---
   const handlePasswordAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
@@ -168,32 +161,32 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
   return (
     <div className="min-h-screen bg-[#0D0E12] text-white flex flex-col items-center justify-center p-4 relative font-['Plus_Jakarta_Sans',sans-serif] selection:bg-[#11C76F] selection:text-[#0D0E12]">
       {/* Glow de fundo */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[250px] bg-[#11C76F]/10 blur-[130px] pointer-events-none rounded-full" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[520px] h-[260px] bg-[#11C76F]/10 blur-[130px] pointer-events-none rounded-full" />
 
-      {/* Pop-up Simulador de SMS do Smartphone (quando não há gateway contratado) */}
-      {simulatedSmsToast && (
+      {/* Pop-up Notificação de E-mail (quando em simulação ou teste rápido) */}
+      {simulatedEmailToast && (
         <div className="fixed top-5 z-50 animate-in slide-in-from-top-4 duration-300 max-w-sm w-full px-4">
           <div className="bg-[#1C202C] border-2 border-[#11C76F] p-4 rounded-2xl shadow-[0_10px_40px_rgba(17,199,111,0.3)] text-xs space-y-1.5 relative overflow-hidden">
             <div className="flex items-center justify-between text-[#8B95A5]">
               <span className="font-bold flex items-center gap-1.5 text-white">
-                <MessageSquareCode className="w-4 h-4 text-[#11C76F]" />
-                Mensagem SMS • Agora
+                <Inbox className="w-4 h-4 text-[#11C76F]" />
+                Novo E-mail: EnablePay • Agora
               </span>
               <button 
-                onClick={() => setSimulatedSmsToast(null)}
+                onClick={() => setSimulatedEmailToast(null)}
                 className="text-[#8B95A5] hover:text-white"
               >
                 ✕
               </button>
             </div>
             <p className="text-white">
-              EnablePay: Seu código de verificação é{' '}
+              Seu código de acesso OTP é:{' '}
               <strong className="text-[#11C76F] font-mono text-sm tracking-wider bg-[#11C76F]/10 px-2 py-0.5 rounded border border-[#11C76F]/20">
-                {simulatedSmsToast.code}
+                {simulatedEmailToast.code}
               </strong>
             </p>
             <span className="text-[10px] text-[#8B95A5] block">
-              Para: {simulatedSmsToast.phone} • Válido por 5 minutos
+              Enviado para: {simulatedEmailToast.email} • Válido por 10 min
             </span>
           </div>
         </div>
@@ -221,7 +214,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
               type="button"
               onClick={() => {
                 setAuthMode('login');
-                setSmsStep('enter_phone');
+                setEmailStep('enter_email');
                 setErrorMessage('');
                 setSuccessMessage('');
               }}
@@ -237,7 +230,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
               type="button"
               onClick={() => {
                 setAuthMode('cadastro');
-                setSmsStep('enter_phone');
+                setEmailStep('enter_email');
                 setErrorMessage('');
                 setSuccessMessage('');
               }}
@@ -251,23 +244,23 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
             </button>
           </div>
 
-          {/* Abas de Método: Celular/SMS vs Senha */}
+          {/* Abas de Método: E-mail (Código OTP) vs Senha */}
           <div className="flex items-center justify-center gap-4 text-xs font-semibold border-b border-[#262936] pb-3">
             <button
               type="button"
               onClick={() => {
-                setAuthMethod('sms');
-                setSmsStep('enter_phone');
+                setAuthMethod('email_otp');
+                setEmailStep('enter_email');
                 setErrorMessage('');
               }}
               className={`flex items-center gap-1.5 pb-1 border-b-2 transition-all cursor-pointer ${
-                authMethod === 'sms'
+                authMethod === 'email_otp'
                   ? 'border-[#11C76F] text-[#11C76F] font-bold'
                   : 'border-transparent text-[#8B95A5] hover:text-white'
               }`}
             >
-              <Smartphone className="w-3.5 h-3.5" />
-              <span>Celular (Código SMS)</span>
+              <Mail className="w-3.5 h-3.5" />
+              <span>Código por E-mail (OTP)</span>
             </button>
 
             <button
@@ -283,7 +276,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
               }`}
             >
               <KeyRound className="w-3.5 h-3.5" />
-              <span>E-mail & Senha</span>
+              <span>Senha</span>
             </button>
           </div>
 
@@ -303,12 +296,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
           )}
 
           {/* ======================================================== */}
-          {/* MÉTODO 1: CELULAR COM AUTENTICAÇÃO POR SMS */}
+          {/* MÉTODO 1: AUTENTICAÇÃO POR CÓDIGO OTP VIA E-MAIL         */}
           {/* ======================================================== */}
-          {authMethod === 'sms' && (
+          {authMethod === 'email_otp' && (
             <>
-              {smsStep === 'enter_phone' ? (
-                <form onSubmit={handleRequestSmsCode} className="space-y-4">
+              {emailStep === 'enter_email' ? (
+                <form onSubmit={handleRequestEmailCode} className="space-y-4">
                   {authMode === 'cadastro' && (
                     <div>
                       <label className="block text-xs font-semibold text-[#8B95A5] mb-1.5">
@@ -321,7 +314,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                           required
                           value={name}
                           onChange={(e) => setName(e.target.value)}
-                          placeholder="Ex: João da Silva"
+                          placeholder="Ex: Carlos Eduardo"
                           className="w-full pl-10 pr-4 py-3 bg-[#12141A] border border-[#262936] focus:border-[#11C76F] rounded-xl text-sm font-medium text-white placeholder-[#5F6876] outline-none"
                         />
                       </div>
@@ -330,21 +323,24 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
 
                   <div>
                     <label className="block text-xs font-semibold text-[#8B95A5] mb-1.5">
-                      Número de Celular com DDD
+                      Seu E-mail
                     </label>
                     <div className="relative">
-                      <Smartphone className="w-4 h-4 text-[#8B95A5] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <Mail className="w-4 h-4 text-[#8B95A5] absolute left-3.5 top-1/2 -translate-y-1/2" />
                       <input
-                        type="tel"
+                        type="email"
                         required
-                        value={phone}
-                        onChange={handlePhoneChange}
-                        placeholder="(11) 99999-9999"
-                        className="w-full pl-10 pr-4 py-3 bg-[#12141A] border border-[#262936] focus:border-[#11C76F] rounded-xl text-sm font-bold text-white placeholder-[#5F6876] outline-none"
+                        value={email}
+                        onChange={(e) => {
+                          setEmail(e.target.value);
+                          setErrorMessage('');
+                        }}
+                        placeholder="seu@email.com"
+                        className="w-full pl-10 pr-4 py-3 bg-[#12141A] border border-[#262936] focus:border-[#11C76F] rounded-xl text-sm font-semibold text-white placeholder-[#5F6876] outline-none"
                       />
                     </div>
-                    <span className="text-[11px] text-[#8B95A5] block mt-1">
-                      Enviaremos um código de 6 dígitos via SMS para você entrar.
+                    <span className="text-[11px] text-[#8B95A5] block mt-1.5">
+                      Enviaremos um código OTP de 6 dígitos para o seu e-mail.
                     </span>
                   </div>
 
@@ -357,20 +353,22 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                       <RefreshCw className="w-4 h-4 animate-spin text-[#0D0E12]" />
                     ) : (
                       <>
-                        <span>{authMode === 'cadastro' ? 'Cadastrar via SMS' : 'Receber Código por SMS'}</span>
+                        <span>{authMode === 'cadastro' ? 'Cadastrar com Código OTP' : 'Enviar Código por E-mail'}</span>
                         <ArrowRight className="w-4 h-4 stroke-[2.5]" />
                       </>
                     )}
                   </button>
                 </form>
               ) : (
-                <form onSubmit={handleVerifySmsCode} className="space-y-4 animate-in fade-in">
+                <form onSubmit={handleVerifyEmailCode} className="space-y-4 animate-in fade-in">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-[#8B95A5]">Enviado para: <strong className="text-white">{phone}</strong></span>
+                    <span className="text-[#8B95A5] truncate max-w-[210px]">
+                      Enviado para: <strong className="text-white">{email}</strong>
+                    </span>
                     <button
                       type="button"
-                      onClick={() => setSmsStep('enter_phone')}
-                      className="text-[#11C76F] hover:underline flex items-center gap-1 cursor-pointer font-bold"
+                      onClick={() => setEmailStep('enter_email')}
+                      className="text-[#11C76F] hover:underline flex items-center gap-1 cursor-pointer font-bold shrink-0 ml-1"
                     >
                       <ArrowLeft className="w-3 h-3" />
                       Trocar
@@ -379,10 +377,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
 
                   <div>
                     <label className="block text-xs font-semibold text-[#8B95A5] mb-1.5">
-                      Código de 6 dígitos recebido por SMS
+                      Código de 6 dígitos recebido no e-mail
                     </label>
                     <div className="relative">
-                      <MessageSquareCode className="w-4 h-4 text-[#8B95A5] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <Mail className="w-4 h-4 text-[#8B95A5] absolute left-3.5 top-1/2 -translate-y-1/2" />
                       <input
                         type="text"
                         required
@@ -396,14 +394,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                   </div>
 
                   <div className="flex items-center justify-between text-xs pt-1">
-                    <span className="text-[#8B95A5]">Não recebeu?</span>
+                    <span className="text-[#8B95A5]">Não recebeu o e-mail?</span>
                     <button
                       type="button"
                       disabled={countdown > 0 || isLoading}
-                      onClick={handleRequestSmsCode}
+                      onClick={handleRequestEmailCode}
                       className="text-[#11C76F] disabled:text-[#8B95A5] font-bold hover:underline cursor-pointer disabled:cursor-not-allowed"
                     >
-                      {countdown > 0 ? `Reenviar em ${countdown}s` : 'Reenviar SMS'}
+                      {countdown > 0 ? `Reenviar em ${countdown}s` : 'Reenviar Código'}
                     </button>
                   </div>
 
@@ -417,7 +415,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                     ) : (
                       <>
                         <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
-                        <span>Confirmar e Acessar</span>
+                        <span>Confirmar e Entrar</span>
                       </>
                     )}
                   </button>
@@ -427,7 +425,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
           )}
 
           {/* ======================================================== */}
-          {/* MÉTODO 2: E-MAIL & SENHA CONVENCIONAL */}
+          {/* MÉTODO 2: SENHA TRADICIONAL                               */}
           {/* ======================================================== */}
           {authMethod === 'senha' && (
             <form onSubmit={handlePasswordAuth} className="space-y-4">
@@ -521,7 +519,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
         {/* Rodapé de Segurança */}
         <div className="flex items-center justify-center gap-2 text-xs text-[#8B95A5] mt-6">
           <ShieldCheck className="w-4 h-4 text-[#11C76F]" />
-          <span>EnablePay • Autenticação segura por SMS e E-mail</span>
+          <span>EnablePay • Autenticação segura por E-mail OTP</span>
         </div>
       </div>
     </div>

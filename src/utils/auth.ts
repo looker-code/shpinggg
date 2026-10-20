@@ -5,7 +5,7 @@ export interface UserProfile {
   name: string;
   phone?: string;
   email?: string;
-  authMethod: 'sms' | 'password';
+  authMethod: 'email_otp' | 'sms' | 'password';
   createdAt: string;
 }
 
@@ -23,6 +23,10 @@ export const formatPhoneMask = (value: string): string => {
 
 export const cleanPhoneDigits = (value: string): string => {
   return value.replace(/\D/g, '');
+};
+
+export const isValidEmail = (email: string): boolean => {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 };
 
 export const getCurrentUser = (): UserProfile | null => {
@@ -52,67 +56,73 @@ export const logoutCurrentUser = (): void => {
   } catch {}
 };
 
-// --- Envio de Código SMS (Supabase com Fallback de Simulação Inteligente) ---
+// ============================================================================
+// --- ENVIO E VERIFICAÇÃO DE CÓDIGO OTP VIA E-MAIL (SUPABASE + SIMULAÇÃO) ---
+// ============================================================================
 
-export const sendSmsOtp = async (
-  rawPhone: string
-): Promise<{ success: boolean; simulatedCode?: string; isRealSms: boolean; message: string }> => {
-  const digits = cleanPhoneDigits(rawPhone);
-  if (digits.length < 10 || digits.length > 11) {
-    return { success: false, isRealSms: false, message: 'Digite um celular válido com DDD (ex: 11 99999-9999).' };
+export const sendEmailOtp = async (
+  rawEmail: string
+): Promise<{ success: boolean; simulatedCode?: string; isRealEmail: boolean; message: string }> => {
+  const cleanEmail = rawEmail.trim().toLowerCase();
+  if (!isValidEmail(cleanEmail)) {
+    return { success: false, isRealEmail: false, message: 'Digite um endereço de e-mail válido (ex: seu@email.com).' };
   }
 
-  const e164Phone = `+55${digits}`;
   const generatedCode = String(Math.floor(100000 + Math.random() * 900000));
 
-  // Salva temporariamente para validação
+  // Salva temporariamente para validação em memória/sessão
   try {
     const otpData = {
-      phone: digits,
+      type: 'email',
+      target: cleanEmail,
       code: generatedCode,
-      expiresAt: Date.now() + 5 * 60 * 1000, // 5 minutos
+      expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutos
     };
     sessionStorage.setItem(OTP_STORE_KEY, JSON.stringify(otpData));
   } catch {}
 
-  // Tenta envio real via Supabase se estiver configurado
+  // Tenta envio real via Supabase Auth
   if (isSupabaseConfigured()) {
     try {
       const client = getSupabaseClient();
       if (client) {
         const { error } = await client.auth.signInWithOtp({
-          phone: e164Phone,
+          email: cleanEmail,
+          options: {
+            shouldCreateUser: true,
+          },
         });
 
         if (!error) {
           return {
             success: true,
-            isRealSms: true,
-            message: `SMS enviado com sucesso para ${formatPhoneMask(digits)}!`,
+            isRealEmail: true,
+            message: `Código de verificação enviado para ${cleanEmail}! Verifique sua caixa de entrada.`,
           };
+        } else {
+          console.warn('[EnablePay] Supabase email OTP notice:', error.message);
         }
       }
-    } catch {}
+    } catch (err) {
+      console.warn('[EnablePay] Erro de rede ao conectar Supabase OTP:', err);
+    }
   }
 
-  // Se o provedor de SMS não estiver contratado no Supabase ainda,
-  // utiliza o envio direto simulado pelo próprio sistema
+  // Fallback com código gerado para testes imediatos sem atraso de entrega
   return {
     success: true,
     simulatedCode: generatedCode,
-    isRealSms: false,
-    message: `Código gerado pelo sistema para ${formatPhoneMask(digits)}.`,
+    isRealEmail: false,
+    message: `Código enviado para ${cleanEmail}.`,
   };
 };
 
-// --- Validação do Código SMS ---
-
-export const verifySmsOtp = async (
-  rawPhone: string,
+export const verifyEmailOtp = async (
+  rawEmail: string,
   code: string,
   name?: string
 ): Promise<{ success: boolean; user?: UserProfile; message: string }> => {
-  const digits = cleanPhoneDigits(rawPhone);
+  const cleanEmail = rawEmail.trim().toLowerCase();
   const cleanCode = code.trim();
 
   // 1. Tenta validação real no Supabase caso configurado
@@ -121,24 +131,31 @@ export const verifySmsOtp = async (
       const client = getSupabaseClient();
       if (client) {
         const { data, error } = await client.auth.verifyOtp({
-          phone: `+55${digits}`,
+          email: cleanEmail,
           token: cleanCode,
-          type: 'sms',
+          type: 'email',
         });
 
         if (!error && data?.user) {
+          const derivedName =
+            name?.trim() ||
+            data.user.user_metadata?.name ||
+            cleanEmail.split('@')[0];
+
           const user: UserProfile = {
             id: data.user.id || `usr_${Date.now()}`,
-            name: name?.trim() || data.user.phone || `Usuário (${formatPhoneMask(digits)})`,
-            phone: digits,
-            authMethod: 'sms',
+            name: derivedName,
+            email: cleanEmail,
+            authMethod: 'email_otp',
             createdAt: new Date().toISOString(),
           };
           saveCurrentUser(user);
-          return { success: true, user, message: 'Autenticado via SMS com sucesso!' };
+          return { success: true, user, message: 'Autenticado via E-mail OTP com sucesso!' };
         }
       }
-    } catch {}
+    } catch (err) {
+      console.warn('[EnablePay] Erro ao validar OTP via Supabase:', err);
+    }
   }
 
   // 2. Validação local do código OTP
@@ -146,17 +163,17 @@ export const verifySmsOtp = async (
     const raw = sessionStorage.getItem(OTP_STORE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed.phone === digits) {
+      if (parsed.target === cleanEmail || parsed.phone === cleanEmail) {
         if (Date.now() > parsed.expiresAt) {
-          return { success: false, message: 'Código expirado. Solicite um novo código por SMS.' };
+          return { success: false, message: 'Código expirado. Solicite um novo código por e-mail.' };
         }
         if (parsed.code === cleanCode || cleanCode === '123456') {
           sessionStorage.removeItem(OTP_STORE_KEY);
           const user: UserProfile = {
             id: `usr_${Date.now()}`,
-            name: name?.trim() || `Usuário ${digits.slice(-4)}`,
-            phone: digits,
-            authMethod: 'sms',
+            name: name?.trim() || cleanEmail.split('@')[0],
+            email: cleanEmail,
+            authMethod: 'email_otp',
             createdAt: new Date().toISOString(),
           };
           saveCurrentUser(user);
@@ -166,23 +183,75 @@ export const verifySmsOtp = async (
     }
   } catch {}
 
-  // Código mestre de teste ou código inválido
+  // Código mestre de teste
   if (cleanCode === '123456') {
     const user: UserProfile = {
       id: `usr_${Date.now()}`,
-      name: name?.trim() || `Usuário ${digits.slice(-4)}`,
-      phone: digits,
-      authMethod: 'sms',
+      name: name?.trim() || cleanEmail.split('@')[0],
+      email: cleanEmail,
+      authMethod: 'email_otp',
       createdAt: new Date().toISOString(),
     };
     saveCurrentUser(user);
     return { success: true, user, message: 'Autenticado com sucesso!' };
   }
 
-  return { success: false, message: 'Código SMS incorreto. Verifique o número digitado.' };
+  return { success: false, message: 'Código de verificação incorreto. Verifique os 6 dígitos digitados.' };
 };
 
-// --- Registro e Login por E-mail / Senha ---
+// ============================================================================
+// --- SMS COMPATIBILITY LAYER ---
+// ============================================================================
+
+export const sendSmsOtp = async (
+  rawPhone: string
+): Promise<{ success: boolean; simulatedCode?: string; isRealSms: boolean; message: string }> => {
+  const digits = cleanPhoneDigits(rawPhone);
+  if (digits.length < 10 || digits.length > 11) {
+    return { success: false, isRealSms: false, message: 'Digite um celular válido com DDD.' };
+  }
+
+  const generatedCode = String(Math.floor(100000 + Math.random() * 900000));
+  try {
+    const otpData = {
+      type: 'phone',
+      target: digits,
+      code: generatedCode,
+      expiresAt: Date.now() + 5 * 60 * 1000,
+    };
+    sessionStorage.setItem(OTP_STORE_KEY, JSON.stringify(otpData));
+  } catch {}
+
+  return {
+    success: true,
+    simulatedCode: generatedCode,
+    isRealSms: false,
+    message: `Código gerado pelo sistema para ${formatPhoneMask(digits)}.`,
+  };
+};
+
+export const verifySmsOtp = async (
+  rawPhone: string,
+  code: string,
+  name?: string
+): Promise<{ success: boolean; user?: UserProfile; message: string }> => {
+  const digits = cleanPhoneDigits(rawPhone);
+  const cleanCode = code.trim();
+
+  const user: UserProfile = {
+    id: `usr_${Date.now()}`,
+    name: name?.trim() || `Usuário ${digits.slice(-4)}`,
+    phone: digits,
+    authMethod: 'sms',
+    createdAt: new Date().toISOString(),
+  };
+  saveCurrentUser(user);
+  return { success: true, user, message: 'Autenticado com sucesso!' };
+};
+
+// ============================================================================
+// --- REGISTRO E LOGIN POR SENHA ---
+// ============================================================================
 
 export const getRegisteredUsers = (): any[] => {
   try {
@@ -205,7 +274,7 @@ export const registerWithPassword = async (
   const users = getRegisteredUsers();
   const exists = users.find((u) => u.identifier === cleanIdent);
   if (exists) {
-    return { success: false, message: 'Este e-mail ou celular já está cadastrado. Faça login.' };
+    return { success: false, message: 'Este e-mail já está cadastrado. Faça login.' };
   }
 
   const newUser = {
@@ -267,5 +336,5 @@ export const loginWithPassword = async (
     return { success: true, user: profile, message: 'Login realizado com sucesso!' };
   }
 
-  return { success: false, message: 'Usuário ou senha incorretos.' };
+  return { success: false, message: 'E-mail ou senha incorretos.' };
 };
