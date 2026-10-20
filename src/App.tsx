@@ -25,7 +25,6 @@ import { AccountsPayableTab } from './components/AccountsPayableTab';
 import { NewAccountModal } from './components/NewAccountModal';
 import { AddPaymentModal } from './components/AddPaymentModal';
 import { PromissoryDetailsModal } from './components/PromissoryDetailsModal';
-import { SupabaseConfigModal } from './components/SupabaseConfigModal';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
@@ -45,8 +44,6 @@ export default function App() {
   const [selectedAccountForPayment, setSelectedAccountForPayment] = useState<DebtAccount | null>(null);
   const [selectedAccountForDetails, setSelectedAccountForDetails] = useState<DebtAccount | null>(null);
   const [isGlobalPaymentModalOpen, setIsGlobalPaymentModalOpen] = useState(false);
-  const [isDbConfigOpen, setIsDbConfigOpen] = useState(false);
-  const [isDbConnected, setIsDbConnected] = useState<boolean>(() => isSupabaseConfigured());
 
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'warn' } | null>(null);
 
@@ -54,19 +51,19 @@ export default function App() {
     saveAccounts(accounts);
   }, [accounts]);
 
-  // Sincronização automática com Supabase na inicialização
+  // Sincronização automática com Supabase (variáveis de ambiente Vercel)
   useEffect(() => {
     if (isSupabaseConfigured()) {
-      setIsDbConnected(true);
       fetchAccountsFromSupabase()
         .then((dbAccounts) => {
           if (Array.isArray(dbAccounts)) {
             setAccounts(dbAccounts);
             saveAccounts(dbAccounts);
+            console.log(`[EnablePay] Conectado ao Supabase! ${dbAccounts.length} contas carregadas.`);
           }
         })
         .catch((err) => {
-          console.error('Erro ao buscar dados do Supabase:', err);
+          console.error('[EnablePay] Erro ao sincronizar do Supabase:', err);
         });
     }
   }, []);
@@ -357,8 +354,6 @@ export default function App() {
         onLogout={handleLogout}
         pendingCount={summary.openCount + summary.partialCount}
         overdueCount={0}
-        isDbConnected={isDbConnected}
-        onOpenDbConfig={() => setIsDbConfigOpen(true)}
       />
 
       {/* Main Container */}
@@ -428,25 +423,6 @@ export default function App() {
           onQuickSettle={handleQuickSettle}
           onDeletePayment={handleDeletePayment}
           onRealignAmortization={handleRealignAmortization}
-        />
-      )}
-
-      {isDbConfigOpen && (
-        <SupabaseConfigModal
-          isOpen={true}
-          onClose={() => setIsDbConfigOpen(false)}
-          onConnected={() => {
-            setIsDbConnected(true);
-            fetchAccountsFromSupabase()
-              .then((data) => {
-                if (Array.isArray(data)) {
-                  setAccounts(data);
-                  saveAccounts(data);
-                }
-                showToast('Banco Supabase conectado e sincronizado!');
-              })
-              .catch((err) => console.error(err));
-          }}
         />
       )}
     </div>
