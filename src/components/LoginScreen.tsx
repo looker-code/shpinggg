@@ -25,8 +25,8 @@ interface LoginScreenProps {
 }
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
-  // Modos principais: 'login' | 'cadastro'
-  const [authMode, setAuthMode] = useState<'login' | 'cadastro'>('cadastro');
+  // Modos principais: 'login' (padrão ao entrar) | 'cadastro'
+  const [authMode, setAuthMode] = useState<'login' | 'cadastro'>('login');
 
   // Campos do formulário
   const [fullName, setFullName] = useState('');
@@ -273,6 +273,22 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                   </>
                 )}
               </button>
+
+              <div className="text-center pt-1">
+                <p className="text-xs text-[#8B95A5]">
+                  Já tem uma conta cadastrada?{' '}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthMode('login');
+                      setErrorMessage('');
+                    }}
+                    className="text-[#11C76F] font-bold hover:underline cursor-pointer ml-1"
+                  >
+                    Fazer Login
+                  </button>
+                </p>
+              </div>
             </form>
           )}
 
@@ -343,6 +359,22 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                   </>
                 )}
               </button>
+
+              <div className="text-center pt-1">
+                <p className="text-xs text-[#8B95A5]">
+                  Ainda não tem conta no EnablePay?{' '}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthMode('cadastro');
+                      setErrorMessage('');
+                    }}
+                    className="text-[#11C76F] font-bold hover:underline cursor-pointer ml-1"
+                  >
+                    Criar Conta
+                  </button>
+                </p>
+              </div>
             </form>
           )}
         </div>

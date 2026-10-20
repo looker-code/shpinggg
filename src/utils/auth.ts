@@ -28,9 +28,11 @@ export const BUSINESS_TYPES = [
   'Outro (descrever)',
 ] as const;
 
+const SESSION_ACTIVE_KEY = 'enablepay_active_session';
+
 export const getCurrentUser = (): UserProfile | null => {
   try {
-    const raw = localStorage.getItem(STORAGE_AUTH_USER);
+    const raw = localStorage.getItem(STORAGE_AUTH_USER) || sessionStorage.getItem(STORAGE_AUTH_USER);
     if (raw) return JSON.parse(raw);
   } catch {}
   return null;
@@ -38,13 +40,22 @@ export const getCurrentUser = (): UserProfile | null => {
 
 export const saveCurrentUser = (user: UserProfile): void => {
   try {
-    localStorage.setItem(STORAGE_AUTH_USER, JSON.stringify(user));
-    localStorage.setItem('enablepay_auth_v1', 'true');
+    sessionStorage.setItem(SESSION_ACTIVE_KEY, 'true');
+    // Para usuário admin, salva apenas na sessão atual do navegador
+    if (user.username === 'admin') {
+      sessionStorage.setItem(STORAGE_AUTH_USER, JSON.stringify(user));
+      localStorage.removeItem(STORAGE_AUTH_USER);
+    } else {
+      localStorage.setItem(STORAGE_AUTH_USER, JSON.stringify(user));
+      sessionStorage.setItem(STORAGE_AUTH_USER, JSON.stringify(user));
+    }
   } catch {}
 };
 
 export const logoutCurrentUser = (): void => {
   try {
+    sessionStorage.removeItem(SESSION_ACTIVE_KEY);
+    sessionStorage.removeItem(STORAGE_AUTH_USER);
     localStorage.removeItem(STORAGE_AUTH_USER);
     localStorage.removeItem('enablepay_auth_v1');
     localStorage.removeItem('promissory_auth_picpay_v3');
@@ -99,10 +110,24 @@ export const registerUser = async (data: {
     return { success: false, message: 'Por favor, descreva o seu tipo de negócio no campo indicado.' };
   }
 
+  if (cleanUsername === 'admin' || cleanUsername === 'administrador' || cleanUsername === 'root') {
+    return {
+      success: false,
+      message: 'O nome de usuário "admin" é reservado para o acesso administrativo. Por favor, escolha outro.',
+    };
+  }
+
   const users = getRegisteredUsers();
-  const exists = users.find((u) => u.username === cleanUsername);
+  const exists = users.some(
+    (u) =>
+      (u.username && u.username.toLowerCase() === cleanUsername) ||
+      (u.identifier && u.identifier.toLowerCase() === cleanUsername)
+  );
   if (exists) {
-    return { success: false, message: 'Este nome de usuário já está em uso. Por favor, escolha outro.' };
+    return {
+      success: false,
+      message: `O nome de usuário "${cleanUsername}" já está em uso. Por favor, escolha outro ou clique em Entrar.`,
+    };
   }
 
   const finalBusinessType = cleanBusinessType === 'Outro (descrever)' ? cleanCustom! : cleanBusinessType;

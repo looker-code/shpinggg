@@ -30,15 +30,15 @@ import { PromissoryDetailsModal } from './components/PromissoryDetailsModal';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return (
-      localStorage.getItem('enablepay_auth_v1') === 'true' ||
-      localStorage.getItem('promissory_auth_picpay_v3') === 'true'
-    );
+    return sessionStorage.getItem('enablepay_active_session') === 'true';
   });
 
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
     return getCurrentUser();
   });
+
+  // No acesso administrativo (admin), dados são mantidos APENAS no navegador local do usuário
+  const canSyncWithSupabase = isSupabaseConfigured() && currentUser?.username !== 'admin';
 
   const [activeTab, setActiveTab] = useState<'inicio' | 'a-pagar'>('inicio');
 
@@ -57,9 +57,9 @@ export default function App() {
     saveAccounts(accounts);
   }, [accounts]);
 
-  // Sincronização automática com Supabase (variáveis de ambiente Vercel)
+  // Sincronização automática com Supabase (apenas para contas normais; admin não salva na DB)
   useEffect(() => {
-    if (isSupabaseConfigured()) {
+    if (canSyncWithSupabase) {
       fetchAccountsFromSupabase()
         .then((dbAccounts) => {
           if (Array.isArray(dbAccounts)) {
@@ -71,52 +71,8 @@ export default function App() {
         .catch((err) => {
           console.error('[EnablePay] Erro ao sincronizar do Supabase:', err);
         });
-
-      // Sincronização de sessão ativa se houver
-      const client = getSupabaseClient();
-      if (client) {
-        client.auth.getSession().then(({ data: { session } }) => {
-          if (session?.user) {
-            const existing = getCurrentUser();
-            const profile: UserProfile = {
-              id: session.user.id,
-              name: session.user.user_metadata?.name || existing?.name || 'Administrador',
-              username: session.user.user_metadata?.username || existing?.username || 'usuario',
-              businessType: session.user.user_metadata?.businessType || existing?.businessType || 'Comércio / Geral',
-              createdAt: session.user.created_at || new Date().toISOString(),
-            };
-            saveCurrentUser(profile);
-            setCurrentUser(profile);
-            setIsAuthenticated(true);
-          }
-        });
-
-        const { data: authListener } = client.auth.onAuthStateChange((event, session) => {
-          if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.user) {
-            const existing = getCurrentUser();
-            const profile: UserProfile = {
-              id: session.user.id,
-              name: session.user.user_metadata?.name || existing?.name || 'Administrador',
-              username: session.user.user_metadata?.username || existing?.username || 'usuario',
-              businessType: session.user.user_metadata?.businessType || existing?.businessType || 'Comércio / Geral',
-              createdAt: session.user.created_at || new Date().toISOString(),
-            };
-            saveCurrentUser(profile);
-            setCurrentUser(profile);
-            setIsAuthenticated(true);
-            showToast(`Acesso autorizado! Bem-vindo, ${profile.name}.`);
-            if (window.location.hash || window.location.search.includes('code=')) {
-              window.history.replaceState(null, '', window.location.pathname);
-            }
-          }
-        });
-
-        return () => {
-          authListener?.subscription?.unsubscribe();
-        };
-      }
     }
-  }, []);
+  }, [canSyncWithSupabase]);
 
   const showToast = (message: string, type: 'success' | 'info' | 'warn' = 'success') => {
     setToast({ message, type });
@@ -126,19 +82,23 @@ export default function App() {
   };
 
   const handleLogin = (user?: UserProfile) => {
-    localStorage.setItem('enablepay_auth_v1', 'true');
-    localStorage.setItem('promissory_auth_picpay_v3', 'true');
+    sessionStorage.setItem('enablepay_active_session', 'true');
     if (user) {
       setCurrentUser(user);
     } else {
       setCurrentUser(getCurrentUser());
     }
     setIsAuthenticated(true);
-    showToast(`Acesso autorizado! Bem-vindo, ${user?.name || 'Administrador'}.`);
+    if (user?.username === 'admin') {
+      showToast('Acesso administrativo ativado. Dados mantidos apenas no navegador local.', 'info');
+    } else {
+      showToast(`Acesso autorizado! Bem-vindo, ${user?.name || 'Administrador'}.`);
+    }
   };
 
   const handleLogout = () => {
     logoutCurrentUser();
+    sessionStorage.removeItem('enablepay_active_session');
     setCurrentUser(null);
     setIsAuthenticated(false);
     showToast('Sessão finalizada com sucesso.', 'info');
@@ -180,7 +140,7 @@ export default function App() {
     };
 
     setAccounts((prev) => [newAccount, ...prev]);
-    if (isSupabaseConfigured()) {
+    if (canSyncWithSupabase) {
       saveAccountToSupabase(newAccount).catch((err) => console.error(err));
     }
     showToast(`Conta de ${newAccount.debtorName} cadastrada em ${generated.length}x!`);
@@ -242,7 +202,7 @@ export default function App() {
           status: isSettled ? ('quitado' as const) : ('parcial' as const),
         };
 
-        if (isSupabaseConfigured()) {
+        if (canSyncWithSupabase) {
           saveAccountToSupabase(updatedAccount).catch((err) => console.error(err));
         }
 
@@ -264,7 +224,7 @@ export default function App() {
         };
 
         const recalculated = recalculateAccountFromPayments(accountWithFiltered);
-        if (isSupabaseConfigured()) {
+        if (canSyncWithSupabase) {
           saveAccountToSupabase(recalculated).catch((err) => console.error(err));
         }
         return recalculated;
@@ -284,7 +244,7 @@ export default function App() {
         }
 
         const recalculated = recalculateAccountFromPayments(acc);
-        if (isSupabaseConfigured()) {
+        if (canSyncWithSupabase) {
           saveAccountToSupabase(recalculated).catch((err) => console.error(err));
         }
         return recalculated;
@@ -334,7 +294,7 @@ export default function App() {
           payments: [...(a.payments || []), settlementPayment],
           status: 'quitado' as const,
         };
-        if (isSupabaseConfigured()) {
+        if (canSyncWithSupabase) {
           saveAccountToSupabase(updated).catch((err) => console.error(err));
         }
         return updated;
@@ -360,7 +320,7 @@ export default function App() {
 
     if (window.confirm(`Tem certeza que deseja excluir a conta de ${target.debtorName}?`)) {
       setAccounts((prev) => prev.filter((a) => a.id !== id));
-      if (isSupabaseConfigured()) {
+      if (canSyncWithSupabase) {
         deleteAccountFromSupabase(id).catch((err) => console.error(err));
       }
       showToast(`Conta de ${target.debtorName} excluída.`);

@@ -129,8 +129,8 @@ export const Header: React.FC<HeaderProps> = ({
                 <span className="font-bold text-white block truncate max-w-[130px]" title={currentUser?.name || 'Administrador'}>
                   {currentUser?.name || 'Administrador'}
                 </span>
-                <span className="text-[10px] text-[#11C76F] block truncate max-w-[130px]" title={currentUser?.businessType || 'EnablePay'}>
-                  {currentUser?.businessType || 'Ativo'}
+                <span className="text-[10px] text-[#11C76F] block truncate max-w-[130px]" title={currentUser?.username === 'admin' ? 'Acesso Local (Navegador)' : currentUser?.businessType || 'EnablePay'}>
+                  {currentUser?.username === 'admin' ? 'Local (Navegador)' : currentUser?.businessType || 'Ativo'}
                 </span>
               </div>
               <button
